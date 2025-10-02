@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - EoD Scheduler</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">EoD Scheduler</div>
+                <nav>
+                    <ul>
+                        <li><a href="/" {{if eq .CurrentPage "dashboard" }}class="active" {{end}}>Dashboard</a></li>
+                        <li><a href="/team" {{if eq .CurrentPage "team" }}class="active" {{end}}>Team</a></li>
+                        <li><a href="/hours" {{if eq .CurrentPage "hours" }}class="active" {{end}}>Hours</a></li>
+                        <li><a href="/schedule" {{if eq .CurrentPage "schedule" }}class="active" {{end}}>Schedule</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            {{if .Error}}
+            <div class="message message-error">
+                {{.Error}}
+            </div>
+            {{end}}
+
+            {{if .Success}}
+            <div class="message message-success">
+                {{.Success}}
+            </div>
+            {{end}}
+
+            <div class="page-header">
+                <h1 class="page-title">{{.Title}}</h1>
+            </div>
+
+            {{template "content" .}}
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 EoD Scheduler. Simple duty scheduling for engineering teams.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+</body>
+
+</html>

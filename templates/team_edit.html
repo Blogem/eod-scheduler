@@ -1,0 +1,89 @@
+{{define "content"}}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">✏️ Edit Team Member</h2>
+        <p class="card-description">Update team member information and status</p>
+    </div>
+    <form method="post" action="/team/{{.Member.ID}}">
+        <div class="form-group">
+            <label for="name" class="label-required">Name</label>
+            <input type="text" id="name" name="name" value="{{.Form.Name}}" required placeholder="Enter full name">
+            <div class="form-help">This name will appear on the schedule</div>
+        </div>
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" value="{{.Form.Email}}" placeholder="john.doe@company.com">
+            <div class="form-help">Optional: Used for notifications and contact</div>
+        </div>
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="hidden" name="active" value="off">
+                <input type="checkbox" id="active" name="active" value="on" {{if .Form.Active}}checked{{end}}>
+                <label for="active">Active member</label>
+            </div>
+            <div class="form-help">Only active members are included in schedule rotation</div>
+        </div>
+        <div class="btn-group">
+            <button type="submit" class="btn btn-success">💾 Update Team Member</button>
+            <a href="/team" class="btn btn-secondary">❌ Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Member Information -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">👤 Member Information</h2>
+        <p class="card-description">Current details about this team member</p>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-card" style="border-color: {{if .Member.Active}}#27ae60{{else}}#e74c3c{{end}};">
+            <span class="stat-number" style="color: {{if .Member.Active}}#27ae60{{else}}#e74c3c{{end}};">
+                {{if .Member.Active}}✅{{else}}❌{{end}}
+            </span>
+            <span class="stat-label">
+                {{if .Member.Active}}Active Member{{else}}Inactive Member{{end}}
+            </span>
+        </div>
+        <div class="stat-card" style="border-color: #3498db;">
+            <span class="stat-number" style="font-size: 1rem;">{{.Member.DateAdded.Format "Jan 2, 2006"}}</span>
+            <span class="stat-label">Date Added</span>
+        </div>
+        <div class="stat-card" style="border-color: #9b59b6;">
+            <span class="stat-number">#{{.Member.ID}}</span>
+            <span class="stat-label">Member ID</span>
+        </div>
+    </div>
+</div>
+
+<!-- Warning for status changes -->
+{{if .Member.Active}}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">⚠️ Important Notes</h2>
+    </div>
+    <div class="message message-warning">
+        <p><strong>Deactivating this member will:</strong></p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>Remove them from future schedule rotations</li>
+            <li>Keep their existing schedule entries intact</li>
+            <li>Allow you to reactivate them later if needed</li>
+        </ul>
+    </div>
+</div>
+{{else}}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">💡 Reactivation</h2>
+    </div>
+    <div class="message message-success">
+        <p><strong>Activating this member will:</strong></p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>Include them in future schedule rotations</li>
+            <li>They will be added to the rotation queue</li>
+            <li>You may want to regenerate the schedule after activation</li>
+        </ul>
+    </div>
+</div>
+{{end}}
+{{end}}

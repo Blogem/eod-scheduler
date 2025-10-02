@@ -1,0 +1,238 @@
+{{define "content"}}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">✏️ Edit Schedule Entry</h2>
+        <p class="card-description">Modify the duty assignment for this date</p>
+    </div>
+    <form method="post" action="/schedule/edit/{{.Entry.ID}}">
+        <div class="form-group">
+            <label for="date" class="label-required">Date</label>
+            <input type="date" id="date" name="date" value="{{.Form.Date}}" required>
+            <div class="form-help">The date for this duty assignment</div>
+        </div>
+
+        <div class="form-group">
+            <label for="team_member_id" class="label-required">Team Member</label>
+            <select id="team_member_id" name="team_member_id" required>
+                <option value="">👤 Select a team member...</option>
+                {{range .TeamMembers}}
+                <option value="{{.ID}}" {{if eq .ID $.Form.TeamMemberID}}selected{{end}}>
+                    {{.Name}}{{if .Email}} (📧 {{.Email}}){{end}}
+                </option>
+                {{end}}
+            </select>
+            <div class="form-help">Choose who will be on duty for this date</div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="start_time" class="label-required">Start Time</label>
+                <input type="time" id="start_time" name="start_time" value="{{.Form.StartTime}}"
+                    onchange="calculateDuration()" required>
+            </div>
+            <div class="form-group">
+                <label for="end_time" class="label-required">End Time</label>
+                <input type="time" id="end_time" name="end_time" value="{{.Form.EndTime}}"
+                    onchange="calculateDuration()" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div id="duration-display"
+                style="padding: 1rem; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                <strong>Duration: </strong><span id="duration-text">-</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-success">💾 Update Entry</button>
+            <a href="/schedule" class="btn btn-secondary">❌ Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Current Entry Information -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">📋 Current Entry Details</h2>
+        <p class="card-description">Information about the existing assignment</p>
+    </div>
+    <div class="grid grid-2">
+        <div class="stat-card" style="border-color: #3498db;">
+            <div style="font-size: 1.2rem; font-weight: 600; color: #2c3e50;">
+                📅 {{.Entry.GetFormattedDate}}
+            </div>
+            <div style="color: #7f8c8d; margin-top: 0.25rem;">{{.Entry.GetWeekday}}</div>
+        </div>
+        <div class="stat-card" style="border-color: #27ae60;">
+            <div style="font-size: 1.2rem; font-weight: 600; color: #2c3e50;">
+                👤 {{.Entry.TeamMemberName}}
+            </div>
+            <div style="color: #7f8c8d; margin-top: 0.25rem;">Current assignee</div>
+        </div>
+        <div class="stat-card" style="border-color: #9b59b6;">
+            <div style="font-size: 1.2rem; font-weight: 600; color: #2c3e50;">
+                ⏰ {{.Entry.StartTime}} - {{.Entry.EndTime}}
+            </div>
+            <div style="color: #7f8c8d; margin-top: 0.25rem;">Current hours</div>
+        </div>
+        <div class="stat-card" style="border-color: #f39c12;">
+            <div style="font-size: 1.2rem; font-weight: 600; color: #2c3e50;">
+                {{if .Entry.IsManualOverride}}
+                ✏️ Manual Override
+                {{else}}
+                🤖 Auto-Generated
+                {{end}}
+            </div>
+            <div style="color: #7f8c8d; margin-top: 0.25rem;">Entry type</div>
+        </div>
+    </div>
+</div>
+
+<!-- Important Notes -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">⚠️ Important Notes</h2>
+        <p class="card-description">What happens when you edit this entry</p>
+    </div>
+    <div class="message message-warning">
+        <strong>📝 Editing this entry will:</strong>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>Convert it to a manual override (if not already)</li>
+            <li>Prevent future auto-generation from overwriting it</li>
+            <li>Require manual removal if you want to revert to auto-generation</li>
+        </ul>
+    </div>
+
+    {{if not .Entry.IsManualOverride}}
+    <div class="message message-info">
+        <strong>🤖 Auto-Generated Entry:</strong> This entry was created automatically.
+        Once you edit it, it becomes a manual override and won't be updated during schedule regeneration.
+    </div>
+    {{end}}
+</div>
+
+<!-- Quick Actions -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">⚡ Quick Actions</h2>
+        <p class="card-description">Common editing shortcuts</p>
+    </div>
+    <div class="grid grid-2">
+        <div>
+            <h4>🛠️ Entry Management</h4>
+            <div class="btn-group" style="flex-direction: column;">
+                <button type="button" class="btn btn-secondary" onclick="setDefaultTimes()">
+                    🏢 Set Default Times (9-5)
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="copyCurrentTimes()">
+                    🔄 Restore Original Times
+                </button>
+            </div>
+        </div>
+        <div>
+            <h4>🗑️ Remove Override</h4>
+            {{if .Entry.IsManualOverride}}
+            <form method="post" action="/schedule/remove/{{.Entry.ID}}">
+                <button type="submit" class="btn btn-danger" style="width: 100%;"
+                    data-confirm="Remove this manual override? This will delete the entry and potentially regenerate it automatically.">
+                    🗑️ Remove Override
+                </button>
+            </form>
+            {{else}}
+            <div class="message message-info">
+                This is an auto-generated entry. You can't remove it, but editing it will create a manual override.
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Helper functions
+    function setDefaultTimes() {
+        document.getElementById('start_time').value = '09:00';
+        document.getElementById('end_time').value = '17:00';
+        calculateDuration();
+    }
+
+    function copyCurrentTimes() {
+        document.getElementById('start_time').value = '{{.Entry.StartTime}}';
+        document.getElementById('end_time').value = '{{.Entry.EndTime}}';
+        calculateDuration();
+    }
+
+    function calculateDuration() {
+        const startTime = document.getElementById('start_time').value;
+        const endTime = document.getElementById('end_time').value;
+        const durationText = document.getElementById('duration-text');
+
+        if (startTime && endTime) {
+            const start = new Date(`2000-01-01T${startTime}`);
+            const end = new Date(`2000-01-01T${endTime}`);
+
+            if (end > start) {
+                const diffMs = end - start;
+                const diffHours = diffMs / (1000 * 60 * 60);
+                durationText.textContent = `${diffHours} hours`;
+                durationText.style.color = '#27ae60';
+            } else {
+                durationText.textContent = 'Invalid time range';
+                durationText.style.color = '#e74c3c';
+            }
+        } else {
+            durationText.textContent = '-';
+            durationText.style.color = '#7f8c8d';
+        }
+    }
+
+    // Form validation
+    document.addEventListener('DOMContentLoaded', function () {
+        const startTimeInput = document.getElementById('start_time');
+        const endTimeInput = document.getElementById('end_time');
+
+        // Validate time range
+        function validateTimes() {
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+
+            if (startTime && endTime && startTime >= endTime) {
+                endTimeInput.setCustomValidity('End time must be after start time');
+            } else {
+                endTimeInput.setCustomValidity('');
+            }
+        }
+
+        startTimeInput.addEventListener('change', function () {
+            validateTimes();
+            calculateDuration();
+        });
+        endTimeInput.addEventListener('change', function () {
+            validateTimes();
+            calculateDuration();
+        });
+
+        // Initial validation and calculation
+        validateTimes();
+        calculateDuration();
+    });
+
+    // Warn about unsaved changes
+    let formChanged = false;
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+        const inputs = form.querySelectorAll('input, select');
+
+        inputs.forEach(input => {
+            input.addEventListener('change', () => { formChanged = true; });
+        });
+
+        // Cancel link warning
+        document.querySelector('a[href="/schedule"]').addEventListener('click', function (e) {
+            if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{{end}}

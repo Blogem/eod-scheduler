@@ -1,0 +1,223 @@
+{{define "content"}}
+<!-- Welcome Message -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">🏠 Welcome to EoD Scheduler</h2>
+        <p class="card-description">Your central hub for managing engineer on duty schedules</p>
+    </div>
+    <div class="flex-between">
+        <div>
+            <p>Manage your team's schedule rotation efficiently with automated scheduling and manual overrides.</p>
+        </div>
+        <div class="current-time" style="font-weight: 600; color: #2c3e50;"></div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <!-- Current Week Schedule -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">📅 Current Week Schedule</h2>
+            <p class="card-description">This week's duty assignments</p>
+        </div>
+        {{if .Data.CurrentWeek}}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Team Member</th>
+                        <th>Hours</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Data.CurrentWeek}}
+                    <tr>
+                        <td><strong>{{.GetFormattedDate}}</strong></td>
+                        <td>
+                            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                👤 {{.TeamMemberName}}
+                            </span>
+                        </td>
+                        <td>
+                            <span style="font-family: monospace; font-weight: 600;">
+                                {{.StartTime}} - {{.EndTime}}
+                            </span>
+                        </td>
+                        <td>
+                            {{if .IsManualOverride}}
+                            <span
+                                style="color: #f39c12; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+                                ✏️ Manual Override
+                            </span>
+                            {{else}}
+                            <span
+                                style="color: #27ae60; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+                                🤖 Auto-Generated
+                            </span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        <div class="empty-day">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📅</div>
+            <h3>No schedule for this week</h3>
+            <p>Generate a schedule to get started with duty assignments.</p>
+            <a href="#" onclick="generateSchedule()" class="btn btn-primary mt-2">🚀 Generate Schedule</a>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">📊 Quick Stats</h2>
+            <p class="card-description">Overview of your team and schedule</p>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card" style="border-color: #3498db;">
+                <span class="stat-number">{{.Data.TeamCount}}</span>
+                <div style="color: #7f8c8d;">Active Team Members</div>
+            </div>
+            <div style="text-align: center; padding: 1rem;">
+                <div style="font-size: 2rem; font-weight: bold; color: #27ae60;">{{.Data.ActiveDays}}</div>
+                <div style="color: #7f8c8d;">Working Days/Week</div>
+            </div>
+        </div>
+        {{if not .Data.LastGenerated.IsZero}}
+        <div
+            style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; text-align: center; color: #7f8c8d;">
+            Last generated: {{.Data.LastGenerated.Format "Jan 2, 2006 at 3:04pm"}}
+        </div>
+        {{end}}
+    </div>
+</div>
+
+<!-- Next Two Weeks -->
+{{if .Data.NextWeeks}}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Next Two Weeks</h2>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Team Member</th>
+                    <th>Hours</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Data.NextWeeks}}
+                <tr>
+                    <td>{{.GetFormattedDate}}</td>
+                    <td>{{.GetWeekday}}</td>
+                    <td>{{.TeamMemberName}}</td>
+                    <td>{{.StartTime}} - {{.EndTime}}</td>
+                    <td>
+                        {{if .IsManualOverride}}
+                        <span style="color: #f39c12;">Manual Override</span>
+                        {{else}}
+                        <span style="color: #27ae60;">Auto-Generated</span>
+                        {{end}}
+                    </td>
+                    <td>
+                        <a href="/schedule/edit/{{.ID}}" class="btn btn-small btn-secondary">Edit</a>
+                        {{if .IsManualOverride}}
+                        <form style="display: inline;" method="post" action="/schedule/remove/{{.ID}}"
+                            onsubmit="return confirm('Remove this manual override?')">
+                            <button type="submit" class="btn btn-small btn-danger">Remove Override</button>
+                        </form>
+                        {{end}}
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{end}}
+
+<!-- Action Buttons -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Actions</h2>
+    </div>
+    <div class="btn-group" style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; align-items: center;">
+        <form method="post" action="/schedule/generate" style="display: inline;">
+            <input type="hidden" name="force" value="false">
+            <button type="submit" class="btn btn-success" style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;">
+                🚀 Generate Schedule
+            </button>
+        </form>
+        <a href="/schedule/override" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; text-decoration: none;">
+            ✏️ Create Manual Override
+        </a>
+        <a href="/schedule" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; text-decoration: none;">
+            📅 View Full Schedule
+        </a>
+    </div>
+</div>
+
+<style>
+    .btn-group .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    }
+    
+    .btn-group .btn:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+    }
+    
+    @media (max-width: 768px) {
+        .btn-group {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        
+        .btn-group .btn {
+            width: 100% !important;
+            justify-content: center !important;
+        }
+    }
+</style>
+
+<script>
+    function generateSchedule() {
+        if (confirm('Generate schedule for the next 3 months?')) {
+            document.querySelector('form[action="/schedule/generate"] button').click();
+        }
+    }
+
+    // Show success/error messages from URL params
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const success = urlParams.get('success');
+
+        if (error) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'message message-error';
+            errorDiv.textContent = error;
+            document.querySelector('main .container').insertBefore(errorDiv, document.querySelector('.page-header'));
+        }
+
+        if (success) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'message message-success';
+            successDiv.textContent = success;
+            document.querySelector('main .container').insertBefore(successDiv, document.querySelector('.page-header'));
+        }
+    });
+</script>
+{{end}}

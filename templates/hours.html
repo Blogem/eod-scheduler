@@ -1,0 +1,261 @@
+{{define "content"}}
+<!-- Working Hours Configuration -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">⏰ Working Hours Configuration</h2>
+        <p class="card-description">Configure which days are working days and their hours</p>
+    </div>
+    <form method="post" action="/hours">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Working Day</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range $dayNum, $dayName := .DayNames}}
+                    {{$workingHours := ""}}
+                    {{range $.WorkingHours}}{{if eq .DayOfWeek $dayNum}}{{$workingHours = .}}{{end}}{{end}}
+                    <tr>
+                        <td>
+                            <strong style="display: flex; align-items: center; gap: 0.5rem;">
+                                {{if or (eq $dayNum 6) (eq $dayNum 7)}}🏖️{{else}}📅{{end}} {{$dayName}}
+                            </strong>
+                        </td>
+                        <td>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="active_{{$dayNum}}" name="active_{{$dayNum}}"
+                                    onchange="toggleTimeInputs({{$dayNum}})" {{if $workingHours}}{{if
+                                    $workingHours.Active}}checked{{end}}{{end}}>
+                                <label for="active_{{$dayNum}}">
+                                    {{if $workingHours}}{{if $workingHours.Active}}
+                                    <span style="color: #27ae60; font-weight: 600;">✅ Active</span>
+                                    {{else}}
+                                    <span style="color: #95a5a6;">⏸️ Inactive</span>
+                                    {{end}}{{else}}
+                                    <span style="color: #95a5a6;">⏸️ Inactive</span>
+                                    {{end}}
+                                </label>
+                            </div>
+                        </td>
+                        <td>
+                            <input type="time" id="start_time_{{$dayNum}}" name="start_time_{{$dayNum}}"
+                                value="{{if $workingHours}}{{$workingHours.StartTime}}{{else}}09:00{{end}}"
+                                onchange="calculateDuration({{$dayNum}})" {{if $workingHours}}{{if not
+                                $workingHours.Active}}disabled{{end}}{{else}}disabled{{end}}>
+                        </td>
+                        <td>
+                            <input type="time" id="end_time_{{$dayNum}}" name="end_time_{{$dayNum}}"
+                                value="{{if $workingHours}}{{$workingHours.EndTime}}{{else}}17:00{{end}}"
+                                onchange="calculateDuration({{$dayNum}})" {{if $workingHours}}{{if not
+                                $workingHours.Active}}disabled{{end}}{{else}}disabled{{end}}>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        <div class="btn-group">
+            <button type="submit" class="btn btn-success">💾 Save Working Hours</button>
+            <button type="button" class="btn btn-secondary" onclick="setDefaultHours()">🏢 Set Default (Mon-Fri
+                9-5)</button>
+            <button type="button" class="btn btn-warning" onclick="clearAllHours()">🗑️ Clear All</button>
+        </div>
+    </form>
+</div>
+
+<!-- Current Configuration Summary -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">📊 Configuration Summary</h2>
+        <p class="card-description">Overview of your working hours setup</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card" style="border-color: #3498db;">
+            <span class="stat-number" id="active-days-count">0</span>
+            <span class="stat-label">Active Days</span>
+        </div>
+        <div class="stat-card" style="border-color: #27ae60;">
+            <span class="stat-number" id="total-hours">0</span>
+            <span class="stat-label">Hours/Week</span>
+        </div>
+        <div class="stat-card" style="border-color: #f39c12;">
+            <span class="stat-number">{{len .DayNames}}</span>
+            <span class="stat-label">Days Available</span>
+        </div>
+    </div>
+
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+        <h3 style="margin-bottom: 0.5rem;">Active Working Days:</h3>
+        <div class="grid grid-2" id="active-days-display">
+            {{range .WorkingHours}}
+            {{if .Active}}
+            <div style="padding: 0.5rem; background-color: #f8f9fa; border-radius: 4px;">
+                <strong>{{.GetDayName}}</strong><br>
+                <span style="color: #7f8c8d;">{{.StartTime}} - {{.EndTime}}</span>
+            </div>
+            {{end}}
+            {{end}}
+        </div>
+        <div id="no-active-days" class="message message-warning" style="display: none;">
+            <strong>No active working days configured!</strong>
+            You need at least one active working day to generate schedules.
+        </div>
+    </div>
+</div>
+
+<!-- Help and Tips -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">💡 Working Hours Tips</h2>
+        <p class="card-description">Best practices for configuring working hours</p>
+    </div>
+    <div class="grid grid-2">
+        <div>
+            <h4>✅ Active Days</h4>
+            <ul style="margin-left: 1rem; color: #7f8c8d;">
+                <li>Included in schedule generation</li>
+                <li>Team members get assigned</li>
+                <li>Can be any day of the week</li>
+            </ul>
+        </div>
+        <div>
+            <h4>⭕ Inactive Days</h4>
+            <ul style="margin-left: 1rem; color: #7f8c8d;">
+                <li>Skipped during scheduling</li>
+                <li>No assignments created</li>
+                <li>Perfect for weekends/holidays</li>
+            </ul>
+        </div>
+    </div>
+    <div class="message message-info mt-3">
+        <strong>⏰ Time Format:</strong> Use 24-hour format (e.g., 09:00, 17:00).
+        Changes affect future schedules only, not existing entries.
+    </div>
+</div>
+
+<script>
+    // Enable/disable time inputs based on checkbox state
+    document.addEventListener('DOMContentLoaded', function () {
+        // Add event listeners to all day checkboxes
+        for (let day = 0; day <= 6; day++) {
+            const checkbox = document.getElementById('active_' + day);
+            const startTime = document.getElementById('start_time_' + day);
+            const endTime = document.getElementById('end_time_' + day);
+
+            if (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    startTime.disabled = !this.checked;
+                    endTime.disabled = !this.checked;
+                    if (!this.checked) {
+                        startTime.value = '09:00';
+                        endTime.value = '17:00';
+                    }
+                    updateStats();
+                });
+            }
+        }
+
+        // Initial stats calculation
+        updateStats();
+    });
+
+    function setDefaultHours() {
+        // Monday to Friday (0-4), 9-5
+        for (let day = 0; day <= 6; day++) {
+            const checkbox = document.getElementById('active_' + day);
+            const startTime = document.getElementById('start_time_' + day);
+            const endTime = document.getElementById('end_time_' + day);
+
+            if (day <= 4) { // Monday to Friday
+                checkbox.checked = true;
+                startTime.disabled = false;
+                endTime.disabled = false;
+                startTime.value = '09:00';
+                endTime.value = '17:00';
+            } else { // Weekend
+                checkbox.checked = false;
+                startTime.disabled = true;
+                endTime.disabled = true;
+            }
+        }
+        updateStats();
+    }
+
+    function clearAllHours() {
+        if (confirm('Are you sure you want to clear all working hours? This will deactivate all days.')) {
+            for (let day = 0; day <= 6; day++) {
+                const checkbox = document.getElementById('active_' + day);
+                const startTime = document.getElementById('start_time_' + day);
+                const endTime = document.getElementById('end_time_' + day);
+
+                checkbox.checked = false;
+                startTime.disabled = true;
+                endTime.disabled = true;
+                startTime.value = '09:00';
+                endTime.value = '17:00';
+            }
+            updateStats();
+        }
+    }
+
+    // Update statistics
+    function updateStats() {
+        let activeDays = 0;
+        let totalHours = 0;
+
+        for (let day = 0; day <= 6; day++) {
+            const checkbox = document.getElementById('active_' + day);
+            const startTime = document.getElementById('start_time_' + day);
+            const endTime = document.getElementById('end_time_' + day);
+
+            if (checkbox && checkbox.checked) {
+                activeDays++;
+                if (startTime.value && endTime.value) {
+                    const start = parseTime(startTime.value);
+                    const end = parseTime(endTime.value);
+                    if (end > start) {
+                        totalHours += (end - start);
+                    }
+                }
+            }
+        }
+
+        document.getElementById('active-days-count').textContent = activeDays;
+        document.getElementById('total-hours').textContent = Math.round(totalHours * 10) / 10;
+
+        // Show/hide warning message
+        const noActiveDays = document.getElementById('no-active-days');
+        if (activeDays === 0) {
+            noActiveDays.style.display = 'block';
+        } else {
+            noActiveDays.style.display = 'none';
+        }
+    }
+
+    // Parse time string to decimal hours
+    function parseTime(timeStr) {
+        if (!timeStr || timeStr.length !== 5) return 0;
+        const parts = timeStr.split(':');
+        return parseInt(parts[0]) + parseInt(parts[1]) / 60;
+    }
+
+    // Show URL parameter messages
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+
+        if (error) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'message message-error';
+            errorDiv.textContent = decodeURIComponent(error);
+            document.querySelector('main .container').insertBefore(errorDiv, document.querySelector('.page-header'));
+        }
+    });
+</script>
+{{end}}

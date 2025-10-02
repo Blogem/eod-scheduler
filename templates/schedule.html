@@ -1,0 +1,236 @@
+{{define "content"}}
+<!-- Schedule Header -->
+<div class="schedule-header">
+    <div>
+        <h2 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+            📅 Weekly Schedule View
+        </h2>
+        <p style="color: #7f8c8d; margin: 0;">Manage your team's duty assignments</p>
+    </div>
+    <div class="btn-group" style="margin: 0;">
+        <form method="post" action="/schedule/generate" style="display: inline;">
+            <button type="submit" class="btn btn-success">🚀 Generate Schedule</button>
+        </form>
+    </div>
+</div>
+
+<!-- Week Navigation -->
+<div class="week-nav">
+    <div class="week-controls">
+        {{if .Schedule}}
+        <a href="/schedule/week/{{(.Schedule.StartDate.AddDate 0 0 -7).Format "2006-01-02"}}"
+            class="btn btn-secondary">⬅️ Previous Week</a>
+        {{end}}
+    </div>
+    <div class="week-title">
+        {{if .Schedule}}
+        📆 Week of {{.Schedule.StartDate.Format "January 2, 2006"}}
+        {{else}}
+        📆 Schedule View
+        {{end}}
+    </div>
+    <div class="week-controls">
+        {{if .Schedule}}
+        <a href="/schedule/week/{{(.Schedule.StartDate.AddDate 0 0 7).Format "2006-01-02"}}"
+            class="btn btn-secondary">Next Week ➡️</a>
+        {{end}}
+    </div>
+</div>
+
+<!-- Weekly Schedule Grid -->
+{{if .Schedule}}
+<div class="schedule-grid">
+    {{range .Schedule.Days}}
+    <div class="day-column">
+        <div
+            class="day-header {{if .IsToday}}today{{end}} {{if or (eq .Date.Weekday 6) (eq .Date.Weekday 0)}}weekend{{end}}">
+            <div style="font-weight: 700;">{{.Date.Format "Mon"}}</div>
+            <div style="font-size: 0.9rem;">{{.Date.Format "Jan 2"}}</div>
+        </div>
+        <div class="day-content">
+            {{if .Entries}}
+            {{range .Entries}}
+            <div class="schedule-entry {{if .IsManualOverride}}override{{end}}">
+                <div class="schedule-entry-name">👤 {{.TeamMemberName}}</div>
+                <div class="schedule-entry-time">⏰ {{.StartTime}} - {{.EndTime}}</div>
+                {{if .IsManualOverride}}
+                <div style="font-size: 0.75rem; opacity: 0.9; margin-top: 0.25rem;">
+                    ✏️ Manual Override
+                </div>
+                {{end}}
+                <div class="schedule-actions">
+                    <a href="/schedule/takeover?entry={{.ID}}" class="btn btn-small"
+                        style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: rgba(52, 152, 219, 0.8);">
+                        🔄 Take Over
+                    </a>
+                    <a href="/schedule/edit/{{.ID}}" class="btn btn-small"
+                        style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.2);">
+                        ✏️ Edit
+                    </a>
+                    {{if .IsManualOverride}}
+                    <form method="post" action="/schedule/remove/{{.ID}}" style="display: inline;">
+                        <button type="submit" class="btn btn-small"
+                            style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: rgba(231, 76, 60, 0.8); border: none; cursor: pointer;"
+                            onclick="return confirm('Remove this manual override? The original schedule will be restored.');">
+                            🗑️ Remove
+                        </button>
+                    </form>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+            {{else}}
+            <div class="empty-day">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🏖️</div>
+                <div style="font-size: 0.8rem; opacity: 0.7;">No duty assigned</div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+</div>
+{{else}}
+<div class="card">
+    <div class="empty-day">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">📅</div>
+        <h3>No schedule data available</h3>
+        <p>Generate a schedule to see the weekly duty assignments.</p>
+        <div class="btn-group mt-3">
+            <form method="post" action="/schedule/generate" style="display: inline;">
+                <button type="submit" class="btn btn-success">🚀 Generate Schedule</button>
+            </form>
+            <a href="/" class="btn btn-secondary">🏠 Go to Dashboard</a>
+        </div>
+    </div>
+</div>
+{{end}}
+
+<!-- Schedule Statistics -->
+{{if .Schedule}}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">📊 Week Statistics</h2>
+        <p class="card-description">Overview of this week's schedule</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card" style="border-color: #3498db;">
+            <span class="stat-number" id="total-duties">0</span>
+            <span class="stat-label">Total Duties</span>
+        </div>
+        <div class="stat-card" style="border-color: #f39c12;">
+            <span class="stat-number" id="manual-overrides">0</span>
+            <span class="stat-label">Manual Overrides</span>
+        </div>
+        <div class="stat-card" style="border-color: #27ae60;">
+            <span class="stat-number" id="team-members">0</span>
+            <span class="stat-label">Team Members</span>
+        </div>
+        <div class="stat-card" style="border-color: #9b59b6;">
+            <span class="stat-number" id="free-days">7</span>
+            <span class="stat-label">Free Days</span>
+        </div>
+    </div>
+</div>
+{{end}}<!-- Help Section -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Schedule View Guide</h2>
+    </div>
+    <div class="grid grid-2">
+        <div>
+            <h4>Legend:</h4>
+            <ul style="margin-left: 1.5rem;">
+                <li><span style="background-color: #e8f5e8; padding: 2px 4px; border-radius: 2px;">Green entries</span>
+                    = Auto-generated</li>
+                <li><span style="background-color: #fff3cd; padding: 2px 4px; border-radius: 2px;">Yellow entries</span>
+                    = Manual overrides</li>
+                <li><span style="background-color: #e3f2fd; padding: 2px 4px; border-radius: 2px;">Blue header</span> =
+                    Today</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Actions:</h4>
+            <ul style="margin-left: 1.5rem;">
+                <li><strong>Edit:</strong> Modify any schedule entry</li>
+                <li><strong>Remove:</strong> Delete manual overrides only</li>
+                <li><strong>Override:</strong> Create manual assignments</li>
+                <li><strong>Generate:</strong> Create new schedule entries</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show URL parameter messages and calculate statistics
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const success = urlParams.get('success');
+
+        if (error) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'message message-error';
+            errorDiv.textContent = decodeURIComponent(error);
+            document.querySelector('main .container').insertBefore(errorDiv, document.querySelector('.week-nav'));
+        }
+
+        if (success) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'message message-success';
+            successDiv.textContent = decodeURIComponent(success);
+            document.querySelector('main .container').insertBefore(successDiv, document.querySelector('.week-nav'));
+        }
+
+        // Calculate and display statistics
+        calculateWeekStats();
+    });
+
+    function calculateWeekStats() {
+        let totalDuties = 0;
+        let manualOverrides = 0;
+        const uniqueMembers = new Set();
+
+        // Count entries in each day column
+        document.querySelectorAll('.schedule-entry').forEach(entry => {
+            totalDuties++;
+
+            if (entry.classList.contains('override')) {
+                manualOverrides++;
+            }
+
+            const memberName = entry.querySelector('div:first-child').textContent.trim();
+            uniqueMembers.add(memberName);
+        });
+
+        const freeDays = 7 - document.querySelectorAll('.day-column').length;
+
+        // Update display
+        document.getElementById('total-duties').textContent = totalDuties;
+        document.getElementById('manual-overrides').textContent = manualOverrides;
+        document.getElementById('team-members').textContent = uniqueMembers.size;
+        document.getElementById('free-days').textContent = Math.max(0, 7 - totalDuties);
+    }
+</script>
+
+<!-- Fix CSS for 7-column grid -->
+<style>
+    .grid-7 {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1px;
+    }
+
+    @media (max-width: 768px) {
+        .grid-7 {
+            grid-template-columns: 1fr;
+        }
+
+        .week-nav {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+    }
+</style>
+{{end}}

@@ -1,0 +1,171 @@
+{{define "content"}}
+<div class="grid grid-2">
+    <!-- Add New Team Member -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">👥 Add New Team Member</h2>
+            <p class="card-description">Add team members to include them in schedule rotation</p>
+        </div>
+        <form method="post" action="/team">
+            <div class="form-group">
+                <label for="name" class="label-required">Name</label>
+                <input type="text" id="name" name="name" value="{{.Form.Name}}" required placeholder="Enter full name">
+                <div class="form-help">This name will appear on the schedule</div>
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" value="{{.Form.Email}}" placeholder="john.doe@company.com">
+                <div class="form-help">Optional: Used for notifications and contact</div>
+            </div>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="hidden" name="active" value="off">
+                    <input type="checkbox" id="active" name="active" value="on" {{if .Form.Active}}checked{{end}}>
+                    <label for="active">Active member</label>
+                </div>
+                <div class="form-help">Only active members are included in schedule rotation</div>
+            </div>
+            <button type="submit" class="btn btn-success">✨ Add Team Member</button>
+        </form>
+    </div>
+
+    <!-- Team Statistics -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">📊 Team Overview</h2>
+            <p class="card-description">Current team statistics</p>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number">{{len .Members}}</span>
+                <span class="stat-label">Total Members</span>
+            </div>
+            <div class="stat-card" style="border-color: #27ae60;">
+                {{$activeCount := 0}}
+                {{range .Members}}{{if .Active}}{{$activeCount = add $activeCount 1}}{{end}}{{end}}
+                <span class="stat-number" style="color: #27ae60;">{{$activeCount}}</span>
+                <span class="stat-label">Active Members</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Team Members List -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Team Members</h2>
+    </div>
+    {{if .Members}}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Date Added</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Members}}
+                <tr>
+                    <td>
+                        <strong>{{.Name}}</strong>
+                    </td>
+                    <td>
+                        {{if .Email}}
+                        <a href="mailto:{{.Email}}">{{.Email}}</a>
+                        {{else}}
+                        <span style="color: #7f8c8d;">No email</span>
+                        {{end}}
+                    </td>
+                    <td>
+                        {{if .Active}}
+                        <span
+                            style="color: #27ae60; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+                            ✅ Active
+                        </span>
+                        {{else}}
+                        <span
+                            style="color: #e74c3c; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+                            ❌ Inactive
+                        </span>
+                        {{end}}
+                    </td>
+                    <td>{{.DateAdded.Format "Jan 2, 2006"}}</td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/team/{{.ID}}/edit" class="btn btn-small btn-secondary">✏️ Edit</a>
+                            <form style="display: inline;" method="post" action="/team/{{.ID}}/delete">
+                                <button type="submit" class="btn btn-small btn-danger"
+                                    data-confirm="Are you sure you want to delete {{.Name}}? This will also remove their future schedule entries and cannot be undone.">
+                                    🗑️ Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{else}}
+    <div class="empty-day">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">👥</div>
+        <h3>No team members yet</h3>
+        <p>Add your first team member using the form above to get started with scheduling.</p>
+    </div>
+    {{end}}
+</div>
+
+<!-- Help Section -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">💡 Team Management Tips</h2>
+        <p class="card-description">Best practices for managing your team</p>
+    </div>
+    <div class="grid grid-2">
+        <div>
+            <h4>✅ Active Members</h4>
+            <ul style="margin-left: 1rem; color: #7f8c8d;">
+                <li>Included in schedule rotation</li>
+                <li>Receive schedule assignments</li>
+                <li>Counted in team statistics</li>
+            </ul>
+        </div>
+        <div>
+            <h4>❌ Inactive Members</h4>
+            <ul style="margin-left: 1rem; color: #7f8c8d;">
+                <li>Excluded from scheduling</li>
+                <li>Historical data preserved</li>
+                <li>Can be reactivated anytime</li>
+            </ul>
+        </div>
+    </div>
+    <div class="message message-info mt-3">
+        <strong>💡 Pro Tip:</strong> You need at least one active member to generate schedules.
+        Email addresses are optional but recommended for notifications.
+    </div>
+</div>
+
+<script>
+    // Show URL parameter messages
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+
+        if (error) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'message message-error';
+            errorDiv.textContent = decodeURIComponent(error);
+            document.querySelector('main .container').insertBefore(errorDiv, document.querySelector('.page-header'));
+        }
+    });
+
+    // Add helper function for template
+    function add(a, b) {
+        return a + b;
+    }
+</script>
+{{end}}

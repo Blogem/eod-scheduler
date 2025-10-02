@@ -1,0 +1,172 @@
+{{define "content"}}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">✏️ Create Manual Override</h2>
+        <p class="card-description">Manually assign someone to duty on a specific date</p>
+    </div>
+    <form method="post" action="/schedule/override">
+        <div class="form-group">
+            <label for="date" class="label-required">Date</label>
+            <input type="date" id="date" name="date" value="{{.Form.Date}}" required>
+            <div class="form-help">Select the date for the EoD duty assignment</div>
+        </div>
+
+        <div class="form-group">
+            <label for="team_member_id" class="label-required">Team Member</label>
+            <select id="team_member_id" name="team_member_id" required>
+                <option value="">👤 Select a team member...</option>
+                {{range .TeamMembers}}
+                <option value="{{.ID}}" {{if eq .ID $.Form.TeamMemberID}}selected{{end}}>
+                    {{.Name}}{{if .Email}} (📧 {{.Email}}){{end}}
+                </option>
+                {{end}}
+            </select>
+            <div class="form-help">Choose who will be on duty for this date</div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="start_time" class="label-required">Start Time</label>
+                <input type="time" id="start_time" name="start_time"
+                    value="{{if .Form.StartTime}}{{.Form.StartTime}}{{else}}09:00{{end}}" onchange="calculateDuration()"
+                    required>
+            </div>
+            <div class="form-group">
+                <label for="end_time" class="label-required">End Time</label>
+                <input type="time" id="end_time" name="end_time"
+                    value="{{if .Form.EndTime}}{{.Form.EndTime}}{{else}}17:00{{end}}" onchange="calculateDuration()"
+                    required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div id="duration-display"
+                style="padding: 1rem; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                <strong>Duration: </strong><span id="duration-text">8 hours</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-success">✨ Create Override</button>
+            <a href="/schedule" class="btn btn-secondary">❌ Cancel</a>
+            <button type="button" class="btn btn-secondary" onclick="setDefaultTimes()">🏢 Set Default (9-5)</button>
+        </div>
+    </form>
+</div>
+
+<!-- Information about overrides -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">💡 About Manual Overrides</h2>
+        <p class="card-description">Understanding how manual overrides work</p>
+    </div>
+    <div class="message message-info">
+        <p><strong>Manual overrides will:</strong></p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>Replace any existing auto-generated entry for the selected date</li>
+            <li>Take priority over future schedule regenerations</li>
+            <li>Remain in effect until manually removed</li>
+            <li>Be clearly marked in the schedule view</li>
+        </ul>
+    </div>
+    <div style="margin-top: 1rem;">
+        <p><strong>Use cases for manual overrides:</strong></p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>Emergency coverage assignments</li>
+            <li>Vacation or absence coverage</li>
+            <li>Special project requirements</li>
+            <li>Adjusting the rotation for specific dates</li>
+        </ul>
+    </div>
+</div>
+
+{{if not .TeamMembers}}
+<div class="card">
+    <div class="message message-error">
+        <strong>No active team members found!</strong>
+        You need at least one active team member to create manual overrides.
+        <br><br>
+        <a href="/team" class="btn btn-small">Manage Team Members</a>
+    </div>
+</div>
+{{end}}
+
+<!-- Quick action buttons for common dates -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Quick Date Selection</h2>
+    </div>
+    <div class="btn-group">
+        <button type="button" class="btn btn-secondary btn-small" onclick="setDateToToday()">Today</button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="setDateToTomorrow()">Tomorrow</button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="setDateToNextMonday()">Next Monday</button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="setDateToNextFriday()">Next Friday</button>
+    </div>
+</div>
+
+<script>
+    // Date helper functions
+    function setDateToToday() {
+        const today = new Date();
+        document.getElementById('date').value = today.toISOString().split('T')[0];
+    }
+
+    function setDateToTomorrow() {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('date').value = tomorrow.toISOString().split('T')[0];
+    }
+
+    function setDateToNextMonday() {
+        const date = new Date();
+        const day = date.getDay();
+        const daysUntilMonday = day === 0 ? 1 : 8 - day; // If Sunday, 1 day; otherwise 8 - current day
+        date.setDate(date.getDate() + daysUntilMonday);
+        document.getElementById('date').value = date.toISOString().split('T')[0];
+    }
+
+    function setDateToNextFriday() {
+        const date = new Date();
+        const day = date.getDay();
+        const daysUntilFriday = day <= 5 ? 5 - day : 5 + (7 - day);
+        if (daysUntilFriday === 0) { // If today is Friday, get next Friday
+            date.setDate(date.getDate() + 7);
+        } else {
+            date.setDate(date.getDate() + daysUntilFriday);
+        }
+        document.getElementById('date').value = date.toISOString().split('T')[0];
+    }
+
+    // Form validation
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+        const startTimeInput = document.getElementById('start_time');
+        const endTimeInput = document.getElementById('end_time');
+
+        // Validate time range
+        function validateTimes() {
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+
+            if (startTime && endTime && startTime >= endTime) {
+                endTimeInput.setCustomValidity('End time must be after start time');
+            } else {
+                endTimeInput.setCustomValidity('');
+            }
+        }
+
+        startTimeInput.addEventListener('change', validateTimes);
+        endTimeInput.addEventListener('change', validateTimes);
+
+        // Set minimum date to today
+        const dateInput = document.getElementById('date');
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.min = today;
+
+        // If no date set, default to today
+        if (!dateInput.value) {
+            dateInput.value = today;
+        }
+    });
+</script>
+{{end}}

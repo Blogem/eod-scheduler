@@ -1,0 +1,67 @@
+{{define "content"}}
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">🔄 Take Over Shift</h2>
+        <p class="card-description">Select an existing shift to take over from another team member</p>
+    </div>
+    <form method="post" action="/schedule/takeover">
+        <div class="form-group">
+            <label for="schedule_entry_id" class="label-required">Select Shift to Take Over</label>
+            <select id="schedule_entry_id" name="schedule_entry_id" required>
+                <option value="">📅 Select a shift...</option>
+                {{range .Entries}}
+                <option value="{{.ID}}" {{if eq .ID $.Form.ScheduleEntryID}}selected{{end}}>
+                    {{.Date.Format "Mon, Jan 2"}} - {{.TeamMemberName}} ({{.StartTime}} - {{.EndTime}})
+                </option>
+                {{end}}
+            </select>
+            <div class="form-help">Choose the shift you want to take over</div>
+        </div>
+
+        <div class="form-group">
+            <label for="new_team_member_id" class="label-required">Who Will Take Over</label>
+            <select id="new_team_member_id" name="new_team_member_id" required>
+                <option value="">👤 Select team member...</option>
+                {{range .TeamMembers}}
+                <option value="{{.ID}}">
+                    {{.Name}} {{if .Email}}(📧 {{.Email}}){{end}}
+                </option>
+                {{end}}
+            </select>
+            <div class="form-help">Select who will be on duty instead</div>
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-success">🔄 Complete Takeover</button>
+            <a href="/schedule" class="btn btn-secondary">❌ Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">💡 About Shift Takeovers</h2>
+        <p class="card-description">Understanding how shift takeovers work</p>
+    </div>
+    <div class="message message-info">
+        <p><strong>Shift takeovers allow:</strong></p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>One team member to take over another's scheduled shift</li>
+            <li>Keeping the same date and time but changing the person</li>
+            <li>Maintaining the existing schedule structure</li>
+            <li>Clear audit trail of who took over from whom</li>
+        </ul>
+    </div>
+    <div style="margin-top: 1rem;">
+        <p><strong>Common use cases:</strong></p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>Covering for a colleague who is sick or unavailable</li>
+            <li>Swapping shifts due to personal commitments</li>
+            <li>Helping out a teammate with workload balancing</li>
+            <li>Emergency coverage situations</li>
+        </ul>
+    </div>
+</div>
+
+{{end}}
