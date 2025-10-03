@@ -63,7 +63,10 @@
             <div style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.6;">∎</div>
             <h3>No schedule for this week</h3>
             <p>Generate a schedule to get started with duty assignments.</p>
-            <a href="#" onclick="generateSchedule()" class="btn mt-2">Generate Schedule</a>
+            <form method="post" action="/schedule/generate" style="display: inline;">
+                <input type="hidden" name="redirect" value="/">
+                <button type="submit" class="btn mt-2" onclick="return confirm('Generate schedule for the next 3 months?')">Generate Schedule</button>
+            </form>
         </div>
         {{end}}
 </div>
@@ -119,6 +122,11 @@
 </div>
 {{end}}
 
+<!-- Hidden form for JavaScript generate function -->
+<form method="post" action="/schedule/generate" style="display: none;">
+    <input type="hidden" name="redirect" value="/">
+    <button type="submit">Generate Schedule</button>
+</form>
 
 <style>
     .btn-group .btn:hover {
