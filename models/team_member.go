@@ -6,18 +6,18 @@ import (
 
 // TeamMember represents a team member in the EoD scheduler
 type TeamMember struct {
-	ID        int       `json:"id" db:"id"`
-	Name      string    `json:"name" db:"name"`
-	Email     string    `json:"email" db:"email"`
-	Active    bool      `json:"active" db:"active"`
-	DateAdded time.Time `json:"date_added" db:"date_added"`
+	ID          int       `json:"id" db:"id"`
+	Name        string    `json:"name" db:"name"`
+	SlackHandle string    `json:"slack_handle" db:"slack_handle"`
+	Active      bool      `json:"active" db:"active"`
+	DateAdded   time.Time `json:"date_added" db:"date_added"`
 }
 
 // TeamMemberForm represents form data for creating/updating team members
 type TeamMemberForm struct {
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Active bool   `json:"active"`
+	Name        string `json:"name"`
+	SlackHandle string `json:"slack_handle"`
+	Active      bool   `json:"active"`
 }
 
 // Validate validates the team member form data
@@ -32,41 +32,36 @@ func (f *TeamMemberForm) Validate() []string {
 		errors = append(errors, "Name must be less than 100 characters")
 	}
 
-	if f.Email != "" && len(f.Email) > 255 {
-		errors = append(errors, "Email must be less than 255 characters")
+	if f.SlackHandle != "" && len(f.SlackHandle) > 255 {
+		errors = append(errors, "Slack handle must be less than 255 characters")
 	}
 
-	// Basic email validation (simple regex would be overkill for this simple app)
-	if f.Email != "" && !isValidEmail(f.Email) {
-		errors = append(errors, "Email format is invalid")
+	// Basic slack handle validation
+	if f.SlackHandle != "" && !isValidSlackHandle(f.SlackHandle) {
+		errors = append(errors, "Slack handle format is invalid (should start with @)")
 	}
 
 	return errors
 }
 
-// isValidEmail performs basic email validation
-func isValidEmail(email string) bool {
-	// Simple validation: must contain @ and at least one dot after @
-	atIndex := -1
-	for i, char := range email {
-		if char == '@' {
-			if atIndex != -1 {
-				return false // Multiple @ symbols
-			}
-			atIndex = i
+// isValidSlackHandle performs basic slack handle validation
+func isValidSlackHandle(handle string) bool {
+	// Simple validation: must start with @ and be at least 2 characters
+	if len(handle) < 2 {
+		return false
+	}
+
+	if handle[0] != '@' {
+		return false
+	}
+
+	// Check that the rest contains only valid characters (alphanumeric, dots, hyphens, underscores)
+	for i := 1; i < len(handle); i++ {
+		c := handle[i]
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_') {
+			return false
 		}
 	}
 
-	if atIndex == -1 || atIndex == 0 || atIndex == len(email)-1 {
-		return false // No @, or @ at start/end
-	}
-
-	// Check for dot after @
-	for i := atIndex + 1; i < len(email); i++ {
-		if email[i] == '.' && i < len(email)-1 {
-			return true
-		}
-	}
-
-	return false
+	return true
 }

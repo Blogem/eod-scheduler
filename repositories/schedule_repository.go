@@ -36,14 +36,14 @@ func NewScheduleRepository(db *sql.DB) ScheduleRepository {
 // GetByDateRange retrieves schedule entries within a date range with team member info
 func (r *scheduleRepository) GetByDateRange(from, to time.Time) ([]models.ScheduleEntry, error) {
 	query := `
-		SELECT 
-			s.id, s.date, s.team_member_id, s.start_time, s.end_time, s.is_manual_override,
-			t.name as team_member_name, t.email as team_member_email
-		FROM schedule_entries s
-		LEFT JOIN team_members t ON s.team_member_id = t.id
-		WHERE s.date >= ? AND s.date <= ?
-		ORDER BY s.date ASC, s.start_time ASC
-	`
+		SELECT se.id, se.date, se.team_member_id, se.start_time, se.end_time, 
+			   se.is_manual_override, se.original_team_member_id,
+			   t.name as team_member_name, t.slack_handle as team_member_slack_handle
+		FROM schedule_entries se
+		LEFT JOIN team_members t ON se.team_member_id = t.id
+		WHERE se.date >= ? AND se.date <= ?
+		ORDER BY se.date, se.start_time
+		`
 
 	rows, err := r.db.Query(query, from.Format("2006-01-02"), to.Format("2006-01-02"))
 	if err != nil {
@@ -54,7 +54,7 @@ func (r *scheduleRepository) GetByDateRange(from, to time.Time) ([]models.Schedu
 	var entries []models.ScheduleEntry
 	for rows.Next() {
 		var entry models.ScheduleEntry
-		var teamMemberName, teamMemberEmail sql.NullString
+		var teamMemberName, teamMemberSlackHandle sql.NullString
 
 		err := rows.Scan(
 			&entry.ID,
@@ -63,8 +63,9 @@ func (r *scheduleRepository) GetByDateRange(from, to time.Time) ([]models.Schedu
 			&entry.StartTime,
 			&entry.EndTime,
 			&entry.IsManualOverride,
+			&entry.OriginalTeamMemberID,
 			&teamMemberName,
-			&teamMemberEmail,
+			&teamMemberSlackHandle,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan schedule entry: %w", err)
@@ -74,8 +75,8 @@ func (r *scheduleRepository) GetByDateRange(from, to time.Time) ([]models.Schedu
 		if teamMemberName.Valid {
 			entry.TeamMemberName = teamMemberName.String
 		}
-		if teamMemberEmail.Valid {
-			entry.TeamMemberEmail = teamMemberEmail.String
+		if teamMemberSlackHandle.Valid {
+			entry.TeamMemberSlackHandle = teamMemberSlackHandle.String
 		}
 
 		entries = append(entries, entry)
@@ -98,14 +99,14 @@ func (r *scheduleRepository) GetByID(id int) (*models.ScheduleEntry, error) {
 	query := `
 		SELECT 
 			s.id, s.date, s.team_member_id, s.start_time, s.end_time, s.is_manual_override, s.original_team_member_id,
-			t.name as team_member_name, t.email as team_member_email
+			t.name as team_member_name, t.slack_handle as team_member_slack_handle
 		FROM schedule_entries s
 		LEFT JOIN team_members t ON s.team_member_id = t.id
 		WHERE s.id = ?
 	`
 
 	var entry models.ScheduleEntry
-	var teamMemberName, teamMemberEmail sql.NullString
+	var teamMemberName, teamMemberSlackHandle sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
 		&entry.ID,
@@ -116,7 +117,7 @@ func (r *scheduleRepository) GetByID(id int) (*models.ScheduleEntry, error) {
 		&entry.IsManualOverride,
 		&entry.OriginalTeamMemberID,
 		&teamMemberName,
-		&teamMemberEmail,
+		&teamMemberSlackHandle,
 	)
 
 	if err == sql.ErrNoRows {
@@ -130,8 +131,8 @@ func (r *scheduleRepository) GetByID(id int) (*models.ScheduleEntry, error) {
 	if teamMemberName.Valid {
 		entry.TeamMemberName = teamMemberName.String
 	}
-	if teamMemberEmail.Valid {
-		entry.TeamMemberEmail = teamMemberEmail.String
+	if teamMemberSlackHandle.Valid {
+		entry.TeamMemberSlackHandle = teamMemberSlackHandle.String
 	}
 
 	return &entry, nil

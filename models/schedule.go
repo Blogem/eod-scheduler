@@ -15,8 +15,8 @@ type ScheduleEntry struct {
 	OriginalTeamMemberID *int      `json:"original_team_member_id,omitempty" db:"original_team_member_id"`
 
 	// Joined fields (populated from joins with team_members table)
-	TeamMemberName  string `json:"team_member_name,omitempty" db:"team_member_name"`
-	TeamMemberEmail string `json:"team_member_email,omitempty" db:"team_member_email"`
+	TeamMemberName        string `json:"team_member_name,omitempty" db:"team_member_name"`
+	TeamMemberSlackHandle string `json:"team_member_slack_handle,omitempty" db:"team_member_slack_handle"`
 }
 
 // ScheduleState represents the current state of schedule generation

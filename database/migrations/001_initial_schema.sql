@@ -4,7 +4,7 @@
 CREATE TABLE team_members (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    email TEXT UNIQUE,
+    slack_handle TEXT UNIQUE,
     active BOOLEAN DEFAULT 1,
     date_added DATE DEFAULT CURRENT_DATE
 );

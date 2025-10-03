@@ -13,9 +13,9 @@
                 <div class="form-help">This name will appear on the schedule</div>
             </div>
             <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" value="{{.Form.Email}}" placeholder="john.doe@company.com">
-                <div class="form-help">Optional: Used for notifications and contact</div>
+                <label for="slack_handle">Slack Handle</label>
+                <input type="text" id="slack_handle" name="slack_handle" value="{{.Form.SlackHandle}}" placeholder="@john.doe">
+                <div class="form-help">Optional: Your Slack username (e.g., @john.doe)</div>
             </div>
             <div class="form-group">
                 <div class="checkbox-group">
@@ -61,7 +61,7 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Email</th>
+                    <th>Slack Handle</th>
                     <th>Status</th>
                     <th>Date Added</th>
                     <th>Actions</th>
@@ -74,10 +74,10 @@
                         <strong>{{.Name}}</strong>
                     </td>
                     <td>
-                        {{if .Email}}
-                        <a href="mailto:{{.Email}}">{{.Email}}</a>
+                        {{if .SlackHandle}}
+                        <span style="color: #4A90E2; font-family: monospace;">{{.SlackHandle}}</span>
                         {{else}}
-                        <span style="color: #7f8c8d;">No email</span>
+                        <span style="color: #7f8c8d;">No slack handle</span>
                         {{end}}
                     </td>
                     <td>
@@ -145,7 +145,7 @@
     </div>
     <div class="message message-info mt-3">
         <strong>💡 Pro Tip:</strong> You need at least one active member to generate schedules.
-        Email addresses are optional but recommended for notifications.
+        Slack handles are optional but recommended for notifications.
     </div>
 </div>
 

@@ -34,9 +34,9 @@ func TestTeamRepository(t *testing.T) {
 
 	// Test Create
 	member := &models.TeamMember{
-		Name:   "Test User",
-		Email:  "test@example.com",
-		Active: true,
+		Name:        "Test User",
+		SlackHandle: "@test.user",
+		Active:      true,
 	}
 
 	err := repo.Create(member)
@@ -175,9 +175,9 @@ func TestScheduleRepository(t *testing.T) {
 
 	// Create a test team member first
 	member := &models.TeamMember{
-		Name:   "Test User",
-		Email:  "test@example.com",
-		Active: true,
+		Name:        "Test User",
+		SlackHandle: "@test.user",
+		Active:      true,
 	}
 	err := teamRepo.Create(member)
 	if err != nil {

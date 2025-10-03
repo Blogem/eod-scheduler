@@ -61,9 +61,9 @@ func (c *TeamController) Create(w http.ResponseWriter, r *http.Request) {
 	isActive := len(activeValues) > 0 && activeValues[len(activeValues)-1] == "on"
 
 	form := &models.TeamMemberForm{
-		Name:   r.FormValue("name"),
-		Email:  r.FormValue("email"),
-		Active: isActive,
+		Name:        r.FormValue("name"),
+		SlackHandle: r.FormValue("slack_handle"),
+		Active:      isActive,
 	}
 
 	_, err := c.services.Team.CreateMember(form)
@@ -115,9 +115,9 @@ func (c *TeamController) Edit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	form := &models.TeamMemberForm{
-		Name:   member.Name,
-		Email:  member.Email,
-		Active: member.Active,
+		Name:        member.Name,
+		SlackHandle: member.SlackHandle,
+		Active:      member.Active,
 	}
 
 	templateData := struct {
@@ -163,9 +163,9 @@ func (c *TeamController) Update(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Debug - Active values: %v, isActive: %v\n", activeValues, isActive)
 
 	form := &models.TeamMemberForm{
-		Name:   r.FormValue("name"),
-		Email:  r.FormValue("email"),
-		Active: isActive,
+		Name:        r.FormValue("name"),
+		SlackHandle: r.FormValue("slack_handle"),
+		Active:      isActive,
 	}
 
 	_, err = c.services.Team.UpdateMember(id, form)

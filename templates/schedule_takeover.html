@@ -26,7 +26,7 @@
                 <option value="">👤 Select team member...</option>
                 {{range .TeamMembers}}
                 <option value="{{.ID}}">
-                    {{.Name}} {{if .Email}}(📧 {{.Email}}){{end}}
+                    {{.Name}} {{if .SlackHandle}}(� {{.SlackHandle}}){{end}}
                 </option>
                 {{end}}
             </select>

@@ -9,8 +9,8 @@ import (
 func TestTeamMemberFormValidation(t *testing.T) {
 	// Test valid form
 	validForm := TeamMemberForm{
-		Name:  "John Doe",
-		Email: "john@example.com",
+		Name:        "John Doe",
+		SlackHandle: "@john.doe",
 	}
 	errors := validForm.Validate()
 	if len(errors) != 0 {
@@ -19,8 +19,8 @@ func TestTeamMemberFormValidation(t *testing.T) {
 
 	// Test invalid form
 	invalidForm := TeamMemberForm{
-		Name:  "", // Empty name
-		Email: "invalid-email",
+		Name:        "",                     // Empty name
+		SlackHandle: "invalid-slack-handle", // Missing @ prefix
 	}
 	errors = invalidForm.Validate()
 	if len(errors) != 2 {

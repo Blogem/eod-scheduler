@@ -61,19 +61,19 @@ func (s *teamService) CreateMember(form *models.TeamMemberForm) (*models.TeamMem
 		return nil, fmt.Errorf("validation failed: %s", strings.Join(errors, ", "))
 	}
 
-	// Check for duplicate email (if email provided)
-	if form.Email != "" {
-		existing, err := s.findMemberByEmail(form.Email)
+	// Check for duplicate slack handle (if slack handle provided)
+	if form.SlackHandle != "" {
+		existing, err := s.findMemberBySlackHandle(form.SlackHandle)
 		if err == nil && existing != nil {
-			return nil, fmt.Errorf("team member with email %s already exists", form.Email)
+			return nil, fmt.Errorf("team member with slack handle %s already exists", form.SlackHandle)
 		}
 	}
 
 	// Create new member
 	member := &models.TeamMember{
-		Name:   strings.TrimSpace(form.Name),
-		Email:  strings.TrimSpace(form.Email),
-		Active: form.Active,
+		Name:        strings.TrimSpace(form.Name),
+		SlackHandle: strings.TrimSpace(form.SlackHandle),
+		Active:      form.Active,
 	}
 
 	if err := s.teamRepo.Create(member); err != nil {
@@ -100,17 +100,17 @@ func (s *teamService) UpdateMember(id int, form *models.TeamMemberForm) (*models
 		return nil, fmt.Errorf("team member not found: %w", err)
 	}
 
-	// Check for duplicate email (if email changed and provided)
-	if form.Email != "" && form.Email != member.Email {
-		existing, err := s.findMemberByEmail(form.Email)
+	// Check for duplicate slack handle (if slack handle changed and provided)
+	if form.SlackHandle != "" && form.SlackHandle != member.SlackHandle {
+		existing, err := s.findMemberBySlackHandle(form.SlackHandle)
 		if err == nil && existing != nil && existing.ID != id {
-			return nil, fmt.Errorf("team member with email %s already exists", form.Email)
+			return nil, fmt.Errorf("team member with slack handle %s already exists", form.SlackHandle)
 		}
 	}
 
 	// Update member fields
 	member.Name = strings.TrimSpace(form.Name)
-	member.Email = strings.TrimSpace(form.Email)
+	member.SlackHandle = strings.TrimSpace(form.SlackHandle)
 	member.Active = form.Active
 
 	if err := s.teamRepo.Update(member); err != nil {
@@ -228,10 +228,10 @@ func (s *teamService) ValidateDeleteMember(id int) error {
 	return nil
 }
 
-// findMemberByEmail finds a team member by email (helper function)
-func (s *teamService) findMemberByEmail(email string) (*models.TeamMember, error) {
-	if email == "" {
-		return nil, fmt.Errorf("email is empty")
+// findMemberBySlackHandle finds a team member by slack handle (helper function)
+func (s *teamService) findMemberBySlackHandle(slackHandle string) (*models.TeamMember, error) {
+	if slackHandle == "" {
+		return nil, fmt.Errorf("slack handle is empty")
 	}
 
 	members, err := s.teamRepo.GetAll()
@@ -240,10 +240,10 @@ func (s *teamService) findMemberByEmail(email string) (*models.TeamMember, error
 	}
 
 	for _, member := range members {
-		if strings.EqualFold(member.Email, email) {
+		if strings.EqualFold(member.SlackHandle, slackHandle) {
 			return &member, nil
 		}
 	}
 
-	return nil, fmt.Errorf("no team member found with email: %s", email)
+	return nil, fmt.Errorf("no team member found with slack handle: %s", slackHandle)
 }

@@ -32,7 +32,7 @@ func NewTeamRepository(db *sql.DB) TeamRepository {
 // GetAll retrieves all team members
 func (r *teamRepository) GetAll() ([]models.TeamMember, error) {
 	query := `
-		SELECT id, name, email, active, date_added 
+		SELECT id, name, slack_handle, active, date_added 
 		FROM team_members 
 		ORDER BY name ASC
 	`
@@ -49,7 +49,7 @@ func (r *teamRepository) GetAll() ([]models.TeamMember, error) {
 		err := rows.Scan(
 			&member.ID,
 			&member.Name,
-			&member.Email,
+			&member.SlackHandle,
 			&member.Active,
 			&member.DateAdded,
 		)
@@ -69,7 +69,7 @@ func (r *teamRepository) GetAll() ([]models.TeamMember, error) {
 // GetByID retrieves a team member by ID
 func (r *teamRepository) GetByID(id int) (*models.TeamMember, error) {
 	query := `
-		SELECT id, name, email, active, date_added 
+		SELECT id, name, slack_handle, active, date_added 
 		FROM team_members 
 		WHERE id = ?
 	`
@@ -78,7 +78,7 @@ func (r *teamRepository) GetByID(id int) (*models.TeamMember, error) {
 	err := r.db.QueryRow(query, id).Scan(
 		&member.ID,
 		&member.Name,
-		&member.Email,
+		&member.SlackHandle,
 		&member.Active,
 		&member.DateAdded,
 	)
@@ -96,7 +96,7 @@ func (r *teamRepository) GetByID(id int) (*models.TeamMember, error) {
 // GetActiveMembers retrieves only active team members
 func (r *teamRepository) GetActiveMembers() ([]models.TeamMember, error) {
 	query := `
-		SELECT id, name, email, active, date_added 
+		SELECT id, name, slack_handle, active, date_added 
 		FROM team_members 
 		WHERE active = 1 
 		ORDER BY date_added ASC, name ASC
@@ -114,7 +114,7 @@ func (r *teamRepository) GetActiveMembers() ([]models.TeamMember, error) {
 		err := rows.Scan(
 			&member.ID,
 			&member.Name,
-			&member.Email,
+			&member.SlackHandle,
 			&member.Active,
 			&member.DateAdded,
 		)
@@ -134,7 +134,7 @@ func (r *teamRepository) GetActiveMembers() ([]models.TeamMember, error) {
 // Create creates a new team member
 func (r *teamRepository) Create(member *models.TeamMember) error {
 	query := `
-		INSERT INTO team_members (name, email, active, date_added) 
+		INSERT INTO team_members (name, slack_handle, active, date_added) 
 		VALUES (?, ?, ?, ?)
 	`
 
@@ -143,7 +143,7 @@ func (r *teamRepository) Create(member *models.TeamMember) error {
 		member.DateAdded = time.Now()
 	}
 
-	result, err := r.db.Exec(query, member.Name, member.Email, member.Active, member.DateAdded)
+	result, err := r.db.Exec(query, member.Name, member.SlackHandle, member.Active, member.DateAdded)
 	if err != nil {
 		return fmt.Errorf("failed to create team member: %w", err)
 	}
@@ -162,11 +162,11 @@ func (r *teamRepository) Create(member *models.TeamMember) error {
 func (r *teamRepository) Update(member *models.TeamMember) error {
 	query := `
 		UPDATE team_members 
-		SET name = ?, email = ?, active = ? 
+		SET name = ?, slack_handle = ?, active = ? 
 		WHERE id = ?
 	`
 
-	result, err := r.db.Exec(query, member.Name, member.Email, member.Active, member.ID)
+	result, err := r.db.Exec(query, member.Name, member.SlackHandle, member.Active, member.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update team member: %w", err)
 	}
