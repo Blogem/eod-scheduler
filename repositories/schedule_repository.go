@@ -172,7 +172,7 @@ func (r *scheduleRepository) Create(entry *models.ScheduleEntry) error {
 func (r *scheduleRepository) Update(entry *models.ScheduleEntry) error {
 	query := `
 		UPDATE schedule_entries 
-		SET date = ?, team_member_id = ?, start_time = ?, end_time = ?, is_manual_override = ?
+		SET date = ?, team_member_id = ?, start_time = ?, end_time = ?, is_manual_override = ?, original_team_member_id = ?
 		WHERE id = ?
 	`
 
@@ -182,6 +182,7 @@ func (r *scheduleRepository) Update(entry *models.ScheduleEntry) error {
 		entry.StartTime,
 		entry.EndTime,
 		entry.IsManualOverride,
+		entry.OriginalTeamMemberID,
 		entry.ID,
 	)
 	if err != nil {

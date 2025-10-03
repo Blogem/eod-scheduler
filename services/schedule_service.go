@@ -459,16 +459,15 @@ func (s *scheduleService) UpdateScheduleEntry(id int, form *models.ScheduleEntry
 	isManualOverride := entry.TeamMemberID != form.TeamMemberID
 
 	// Update entry fields
+	if isManualOverride && entry.OriginalTeamMemberID == nil {
+		// Store original team member ID if this is now a manual override
+		entry.OriginalTeamMemberID = &entry.TeamMemberID
+	}
 	entry.Date = date
 	entry.TeamMemberID = form.TeamMemberID
 	entry.StartTime = strings.TrimSpace(form.StartTime)
 	entry.EndTime = strings.TrimSpace(form.EndTime)
 	entry.IsManualOverride = isManualOverride
-	if isManualOverride && entry.OriginalTeamMemberID == nil {
-		// Store original team member ID if this is now a manual override
-		originalID := entry.TeamMemberID
-		entry.OriginalTeamMemberID = &originalID
-	}
 
 	if err := s.scheduleRepo.Update(entry); err != nil {
 		return nil, fmt.Errorf("failed to update schedule entry: %w", err)
