@@ -25,9 +25,18 @@
             <select id="new_team_member_id" name="new_team_member_id" required>
                 <option value="">👤 Select team member...</option>
                 {{range .TeamMembers}}
+                {{$teamMember := .}}
+                {{$isOriginalMember := false}}
+                {{range $.Entries}}
+                    {{if and (eq .ID $.Form.ScheduleEntryID) (eq .TeamMemberID $teamMember.ID)}}
+                        {{$isOriginalMember = true}}
+                    {{end}}
+                {{end}}
+                {{if not $isOriginalMember}}
                 <option value="{{.ID}}">
-                    {{.Name}} {{if .SlackHandle}}(� {{.SlackHandle}}){{end}}
+                    {{.Name}} {{if .SlackHandle}}({{.SlackHandle}}){{end}}
                 </option>
+                {{end}}
                 {{end}}
             </select>
             <div class="form-help">Select who will be on duty instead</div>
