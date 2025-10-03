@@ -32,8 +32,8 @@
                 </thead>
                 <tbody>
                     {{range .Data.CurrentWeek}}
-                    <tr>
-                        <td><strong>{{.GetFormattedDate}}</strong></td>
+                    <tr{{if .IsToday}} class="today-highlight"{{end}}>
+                        <td><strong>{{.GetFormattedDate}}{{if .IsToday}} <span class="today-badge">Today</span>{{end}}</strong></td>
                         <td>
                             <span class="font-semibold">{{.TeamMemberName}}</span>
                         </td>

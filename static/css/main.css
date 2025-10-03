@@ -1423,3 +1423,37 @@ footer {
         color: black !important;
     }
 }
+
+/* Today Highlight Styles */
+.today-highlight {
+    background-color: var(--accent-50) !important;
+    border-left: 4px solid var(--accent-600) !important;
+    position: relative;
+}
+
+.today-highlight td {
+    background-color: transparent !important;
+}
+
+.today-badge {
+    display: inline-block;
+    background-color: var(--accent-600);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    margin-left: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+/* Dark theme support for today highlight */
+[data-theme="dark"] .today-highlight {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border-left-color: var(--accent-500) !important;
+}
+
+[data-theme="dark"] .today-badge {
+    background-color: var(--accent-500);
+}
