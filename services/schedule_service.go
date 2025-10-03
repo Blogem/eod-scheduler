@@ -244,7 +244,7 @@ func (s *scheduleService) generateScheduleEntries(activeMembers []models.TeamMem
 
 	entriesCreated := 0
 	for _, workingDate := range workingDates {
-		entry := s.createScheduleEntry(workingDate, activeMembers)
+		entry := s.createScheduleEntry(workingDate, activeMembers, activeDays)
 
 		if err := s.scheduleRepo.Create(entry); err != nil {
 			return 0, fmt.Errorf("failed to create schedule entry: %w", err)
@@ -319,12 +319,12 @@ func (s *scheduleService) hasManualOverride(date time.Time) (bool, error) {
 	return false, nil
 }
 
-// createScheduleEntry creates a schedule entry with deterministic team member assignment
-func (s *scheduleService) createScheduleEntry(workingDate WorkingDate, activeMembers []models.TeamMember) *models.ScheduleEntry {
-	// Calculate deterministic assignment based on date
-	epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	daysSinceEpoch := int(workingDate.Date.Sub(epoch).Hours() / 24)
-	memberIndex := daysSinceEpoch % len(activeMembers)
+// createScheduleEntry creates a schedule entry with deterministic team member assignment based on working day sequence
+func (s *scheduleService) createScheduleEntry(workingDate WorkingDate, activeMembers []models.TeamMember, activeDays []models.WorkingHours) *models.ScheduleEntry {
+	// Calculate deterministic assignment based on working days since epoch for this specific date
+	// This maintains determinism (same date always gets same assignment) while avoiding consecutive assignments
+	workingDaysSinceEpoch := s.calculateWorkingDaysSinceEpoch(workingDate.Date, activeDays)
+	memberIndex := workingDaysSinceEpoch % len(activeMembers)
 
 	return &models.ScheduleEntry{
 		Date:             workingDate.Date,
@@ -333,6 +333,40 @@ func (s *scheduleService) createScheduleEntry(workingDate WorkingDate, activeMem
 		EndTime:          workingDate.WorkingHours.EndTime,
 		IsManualOverride: false,
 	}
+}
+
+// calculateWorkingDaysSinceEpoch calculates how many working days have passed since a fixed epoch
+// using the actual configured working days. This ensures deterministic assignments
+// while preventing consecutive assignments due to non-working days.
+func (s *scheduleService) calculateWorkingDaysSinceEpoch(date time.Time, activeDays []models.WorkingHours) int {
+	// Use a fixed epoch date that's a Monday to make calculation easier
+	epoch := time.Date(2000, 1, 3, 0, 0, 0, 0, time.UTC) // Monday, January 3, 2000
+
+	if date.Before(epoch) {
+		return 0
+	}
+
+	// Create a map of active days for fast lookup
+	// Convert from our DayOfWeek format (0=Monday) to Go's time.Weekday format (1=Monday, 0=Sunday)
+	activeWeekdays := make(map[time.Weekday]bool)
+	for _, workingHours := range activeDays {
+		if workingHours.Active {
+			// Convert from our format (0=Monday, 1=Tuesday, ..., 6=Sunday)
+			// to Go's format (0=Sunday, 1=Monday, ..., 6=Saturday)
+			goWeekday := time.Weekday((workingHours.DayOfWeek + 1) % 7)
+			activeWeekdays[goWeekday] = true
+		}
+	}
+
+	// Count working days by iterating through each day since epoch
+	workingDays := 0
+	for d := epoch; d.Before(date); d = d.AddDate(0, 0, 1) {
+		if activeWeekdays[d.Weekday()] {
+			workingDays++
+		}
+	}
+
+	return workingDays
 }
 
 // finalizeGeneration updates the state and creates the final result

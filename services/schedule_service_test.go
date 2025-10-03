@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"sort"
 	"testing"
 	"time"
 
@@ -565,6 +566,98 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_DeterministicAssign
 			suite.T().Errorf("FAILURE: No overlapping dates between runs (different generation periods)")
 		} else {
 			suite.T().Errorf("FAILURE: %d out of %d matching dates have different assignments!", differentAssignments, matchingDates)
+		}
+	}
+}
+
+// TestGenerateSchedule_UnfairRoundRobin demonstrates that the current algorithm
+// doesn't provide fair round-robin scheduling across weeks - it continues the absolute day count
+// instead of restarting the rotation each week or using a proper working-day-based rotation
+func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_UnfairRoundRobin() {
+	// Setup: Override time to a specific Monday to make test deterministic
+	originalTimeNow := timeNow
+	defer func() { timeNow = originalTimeNow }()
+
+	// Start on a Monday (2023-10-02 was a Monday)
+	testStartDate := time.Date(2023, 10, 2, 0, 0, 0, 0, time.UTC)
+	timeNow = func() time.Time { return testStartDate }
+
+	// Setup: 3 active team members
+	activeMembers := []models.TeamMember{
+		{ID: 1, Name: "Alice", Active: true},
+		{ID: 2, Name: "Bob", Active: true},
+		{ID: 3, Name: "Charlie", Active: true},
+	}
+
+	// Setup: Working days Monday-Friday only
+	activeDays := []models.WorkingHours{
+		{DayOfWeek: 0, StartTime: "09:00", EndTime: "17:00", Active: true}, // Monday
+		{DayOfWeek: 1, StartTime: "09:00", EndTime: "17:00", Active: true}, // Tuesday
+		{DayOfWeek: 3, StartTime: "09:00", EndTime: "17:00", Active: true}, // Thursday
+		{DayOfWeek: 4, StartTime: "09:00", EndTime: "17:00", Active: true}, // Friday
+	}
+
+	// Mock setup
+	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
+	suite.mockWorkingRepo.EXPECT().GetActiveDays().Return(activeDays, nil)
+
+	// Mock schedule state
+	initialState := &models.ScheduleState{
+		ID:                 1,
+		LastGenerationDate: testStartDate.AddDate(0, 0, -30), // 30 days ago
+	}
+	suite.mockScheduleRepo.EXPECT().GetState().Return(initialState, nil)
+
+	// Mock existing entries - no existing entries
+	suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.Anything, mock.Anything).Return([]models.ScheduleEntry{}, nil)
+
+	// Mock GetByDate calls for override checks - no overrides
+	// Need to be more generous with the number of calls since it generates for 3 months
+	suite.mockScheduleRepo.EXPECT().GetByDate(mock.Anything).Return([]models.ScheduleEntry{}, nil).Maybe()
+
+	// Track created entries
+	var createdEntries []models.ScheduleEntry
+	suite.mockScheduleRepo.EXPECT().Create(mock.AnythingOfType("*models.ScheduleEntry")).RunAndReturn(
+		func(entry *models.ScheduleEntry) error {
+			entry.ID = len(createdEntries) + 1
+			createdEntries = append(createdEntries, *entry)
+			return nil
+		},
+	).Maybe() // Let it create as many as needed
+
+	// Mock state update
+	suite.mockScheduleRepo.EXPECT().UpdateState(mock.Anything).Return(nil)
+
+	// Act
+	result, err := suite.service.GenerateSchedule(true)
+
+	// Assert generation succeeded
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), result)
+	assert.True(suite.T(), result.Success)
+
+	suite.T().Logf("Generated %d entries total", len(createdEntries))
+
+	// Sort entries by date to check the sequence
+	sort.Slice(createdEntries, func(i, j int) bool {
+		return createdEntries[i].Date.Before(createdEntries[j].Date)
+	})
+
+	// The FAILING assertion: This should demonstrate the unfairness
+	// Check that each team member is in the same order
+
+	teamMap := make(map[int]int)
+	suite.T().Logf("Checking consecutive assignments in chronological order:")
+	for i := 0; i < len(createdEntries); i++ {
+		entry := createdEntries[i]
+
+		if i > 0 {
+			prevEntry := createdEntries[i-1]
+			if tmid, ok := teamMap[prevEntry.TeamMemberID]; ok {
+				assert.Equal(suite.T(), tmid, entry.TeamMemberID)
+			} else {
+				teamMap[prevEntry.TeamMemberID] = entry.TeamMemberID
+			}
 		}
 	}
 }
