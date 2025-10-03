@@ -23,8 +23,6 @@ type ScheduleService interface {
 	UpdateScheduleEntry(id int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error)
 	RemoveManualOverride(id int) error
 	GetScheduleEntry(id int) (*models.ScheduleEntry, error)
-	GetUpcomingEntries(days int) ([]models.ScheduleEntry, error)
-	ValidateScheduleGeneration() error
 }
 
 // DashboardData represents data for the dashboard view
@@ -145,7 +143,7 @@ func (s *scheduleService) GetWeeklySchedule(startDate time.Time) (*models.WeekVi
 // GenerateSchedule generates schedule for the next 3 months
 func (s *scheduleService) GenerateSchedule(force bool) (*models.GenerationResult, error) {
 	// Validate that generation is possible
-	if err := s.ValidateScheduleGeneration(); err != nil {
+	if err := s.validateScheduleGeneration(); err != nil {
 		return &models.GenerationResult{
 			Success: false,
 			Message: err.Error(),
@@ -354,27 +352,59 @@ func (s *scheduleService) finalizeGeneration(state *models.ScheduleState, entrie
 	}, nil
 }
 
-// CreateManualOverride creates a manual schedule override
-func (s *scheduleService) CreateManualOverride(entryID int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error) {
+// Helper functions for shared logic between CreateManualOverride and UpdateScheduleEntry
+
+// validateFormAndTeamMember validates the form and checks if the team member exists
+func (s *scheduleService) validateFormAndTeamMember(form *models.ScheduleEntryForm) error {
 	// Validate form
 	if errors := form.Validate(); len(errors) > 0 {
-		return nil, fmt.Errorf("validation failed: %s", strings.Join(errors, ", "))
-	}
-
-	// Parse date
-	date, err := models.ParseDate(form.Date)
-	if err != nil {
-		return nil, fmt.Errorf("invalid date format: %w", err)
+		return fmt.Errorf("validation failed: %s", strings.Join(errors, ", "))
 	}
 
 	// Validate team member exists
-	_, err = s.teamRepo.GetByID(form.TeamMemberID)
+	_, err := s.teamRepo.GetByID(form.TeamMemberID)
 	if err != nil {
-		return nil, fmt.Errorf("team member not found: %w", err)
+		return fmt.Errorf("team member not found: %w", err)
 	}
 
-	// Check if there's already an entry for this date
-	existingEntry, err := s.scheduleRepo.GetByID(entryID)
+	return nil
+}
+
+// parseDateFromForm parses and validates the date from the form
+func (s *scheduleService) parseDateFromForm(form *models.ScheduleEntryForm) (time.Time, error) {
+	date, err := models.ParseDate(form.Date)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid date format: %w", err)
+	}
+	return date, nil
+}
+
+// getExistingEntryWithValidation retrieves an existing entry by ID with validation
+func (s *scheduleService) getExistingEntryWithValidation(id int) (*models.ScheduleEntry, error) {
+	if id <= 0 {
+		return nil, fmt.Errorf("invalid schedule entry ID: %d", id)
+	}
+
+	entry, err := s.scheduleRepo.GetByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("schedule entry not found: %w", err)
+	}
+
+	return entry, nil
+}
+
+// CreateManualOverride creates a manual schedule override
+func (s *scheduleService) CreateManualOverride(entryID int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error) {
+	if err := s.validateFormAndTeamMember(form); err != nil {
+		return nil, err
+	}
+
+	date, err := s.parseDateFromForm(form)
+	if err != nil {
+		return nil, err
+	}
+
+	existingEntry, err := s.getExistingEntryWithValidation(entryID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check existing entries: %w", err)
 	}
@@ -412,39 +442,33 @@ func (s *scheduleService) CreateManualOverride(entryID int, form *models.Schedul
 
 // UpdateScheduleEntry updates an existing schedule entry
 func (s *scheduleService) UpdateScheduleEntry(id int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error) {
-	if id <= 0 {
-		return nil, fmt.Errorf("invalid schedule entry ID: %d", id)
+	if err := s.validateFormAndTeamMember(form); err != nil {
+		return nil, err
 	}
 
-	// Validate form
-	if errors := form.Validate(); len(errors) > 0 {
-		return nil, fmt.Errorf("validation failed: %s", strings.Join(errors, ", "))
-	}
-
-	// Get existing entry
-	entry, err := s.scheduleRepo.GetByID(id)
+	entry, err := s.getExistingEntryWithValidation(id)
 	if err != nil {
-		return nil, fmt.Errorf("schedule entry not found: %w", err)
+		return nil, err
 	}
 
-	// Parse date
-	date, err := models.ParseDate(form.Date)
+	date, err := s.parseDateFromForm(form)
 	if err != nil {
-		return nil, fmt.Errorf("invalid date format: %w", err)
+		return nil, err
 	}
 
-	// Validate team member exists
-	_, err = s.teamRepo.GetByID(form.TeamMemberID)
-	if err != nil {
-		return nil, fmt.Errorf("team member not found: %w", err)
-	}
+	isManualOverride := entry.TeamMemberID != form.TeamMemberID
 
 	// Update entry fields
 	entry.Date = date
 	entry.TeamMemberID = form.TeamMemberID
 	entry.StartTime = strings.TrimSpace(form.StartTime)
 	entry.EndTime = strings.TrimSpace(form.EndTime)
-	entry.IsManualOverride = true // Any update makes it a manual override
+	entry.IsManualOverride = isManualOverride
+	if isManualOverride && entry.OriginalTeamMemberID == nil {
+		// Store original team member ID if this is now a manual override
+		originalID := entry.TeamMemberID
+		entry.OriginalTeamMemberID = &originalID
+	}
 
 	if err := s.scheduleRepo.Update(entry); err != nil {
 		return nil, fmt.Errorf("failed to update schedule entry: %w", err)
@@ -516,8 +540,8 @@ func (s *scheduleService) GetScheduleEntry(id int) (*models.ScheduleEntry, error
 	return s.scheduleRepo.GetByID(id)
 }
 
-// ValidateScheduleGeneration checks if schedule generation is possible
-func (s *scheduleService) ValidateScheduleGeneration() error {
+// validateScheduleGeneration checks if schedule generation is possible
+func (s *scheduleService) validateScheduleGeneration() error {
 	// Check if there are active team members
 	activeMembers, err := s.teamRepo.GetActiveMembers()
 	if err != nil {
@@ -539,12 +563,4 @@ func (s *scheduleService) ValidateScheduleGeneration() error {
 	}
 
 	return nil
-}
-
-// GetUpcomingEntries returns schedule entries for the next N days
-func (s *scheduleService) GetUpcomingEntries(days int) ([]models.ScheduleEntry, error) {
-	from := timeNow()
-	to := from.AddDate(0, 0, days)
-
-	return s.scheduleRepo.GetByDateRange(from, to)
 }
