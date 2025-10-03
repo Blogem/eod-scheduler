@@ -1,0 +1,10 @@
+with-expecter: true
+packages:
+  github.com/blogem/eod-scheduler/repositories:
+    config:
+      dir: "repositories/mocks"
+      outpkg: "mocks"
+    interfaces:
+      TeamRepository:
+      WorkingHoursRepository:
+      ScheduleRepository:
