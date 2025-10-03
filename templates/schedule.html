@@ -160,21 +160,8 @@
 </div>
 
 <script>
-    // Show URL parameter messages and calculate statistics
+    // Calculate and display statistics
     document.addEventListener('DOMContentLoaded', function () {
-        const urlParams = new URLSearchParams(window.location.search);
-        const error = urlParams.get('error');
-
-        if (error) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'message message-error';
-            errorDiv.textContent = decodeURIComponent(error);
-            document.querySelector('main .container').insertBefore(errorDiv, document.querySelector('.week-nav'));
-        }
-
-
-
-        // Calculate and display statistics
         calculateWeekStats();
     });
 
