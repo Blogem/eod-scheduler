@@ -1,26 +1,161 @@
-/* EoD Scheduler - Main Stylesheet */
+/* EoD Scheduler - Modern Minimalist Design */
 
-/* Reset and base styles */
-* {
-    margin: 0;
-    padding: 0;
+/* CSS Custom Properties - Neutral Theme */
+:root {
+    /* Primary Colors - Neutral */
+    --primary-50: #f8fafc;
+    --primary-100: #f1f5f9;
+    --primary-200: #e2e8f0;
+    --primary-300: #cbd5e1;
+    --primary-400: #94a3b8;
+    --primary-500: #64748b;
+    --primary-600: #475569;
+    --primary-700: #334155;
+    --primary-800: #1e293b;
+    --primary-900: #0f172a;
+
+    /* Accent Colors */
+    --accent-50: #eff6ff;
+    --accent-100: #dbeafe;
+    --accent-500: #3b82f6;
+    --accent-600: #2563eb;
+    --accent-700: #1d4ed8;
+
+    /* Semantic Colors */
+    --success-50: #f0fdf4;
+    --success-100: #dcfce7;
+    --success-500: #22c55e;
+    --success-600: #16a34a;
+    --success-700: #15803d;
+
+    --warning-50: #fffbeb;
+    --warning-100: #fef3c7;
+    --warning-500: #f59e0b;
+    --warning-600: #d97706;
+
+    --error-50: #fef2f2;
+    --error-100: #fee2e2;
+    --error-500: #ef4444;
+    --error-600: #dc2626;
+
+    /* Neutral Grays */
+    --gray-50: #fafafa;
+    --gray-100: #f4f4f5;
+    --gray-200: #e4e4e7;
+    --gray-300: #d4d4d8;
+    --gray-400: #a1a1aa;
+    --gray-500: #71717a;
+    --gray-600: #52525b;
+    --gray-700: #3f3f46;
+    --gray-800: #27272a;
+    --gray-900: #18181b;
+
+    /* Typography */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+    --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+
+    /* Spacing Scale */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+
+    /* Border Radius */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+    /* Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Heineken Brand Theme */
+:root[data-theme="heineken"] {
+    --primary-50: #e8f5e8;
+    --primary-100: #c8e6c8;
+    --primary-200: #a0d2a0;
+    --primary-300: #6bb66b;
+    --primary-400: #4da64d;
+    --primary-500: #00a651;
+    /* Heineken Green */
+    --primary-600: #008f47;
+    --primary-700: #007a3d;
+    --primary-800: #006533;
+    --primary-900: #004d26;
+
+    --accent-50: #fff4e6;
+    --accent-100: #ffe4b3;
+    --accent-200: #ffd480;
+    --accent-300: #ffc44d;
+    --accent-400: #ffb41a;
+    --accent-500: #ff9900;
+    /* Heineken Orange/Gold */
+    --accent-600: #e68a00;
+    --accent-700: #cc7a00;
+
+    /* Override neutral grays with warmer tones for Heineken theme */
+    --gray-50: #fafaf9;
+    --gray-100: #f5f5f4;
+    --gray-200: #e7e5e4;
+    --gray-300: #d6d3d1;
+    --gray-400: #a8a29e;
+    --gray-500: #78716c;
+    --gray-600: #57534e;
+    --gray-700: #44403c;
+    --gray-800: #292524;
+    --gray-900: #1c1917;
+}
+
+/* Reset and Base Styles */
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
+* {
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    line-height: 1.6;
-    color: #333;
-    background-color: #f8f9fa;
+    font-family: var(--font-family);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--gray-800);
+    background-color: var(--gray-50);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
+/* Layout */
 .container {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 var(--space-6);
+    width: 100%;
 }
 
 /* Typography */
@@ -30,39 +165,80 @@ h3,
 h4,
 h5,
 h6 {
-    color: #2c3e50;
-    margin-bottom: 0.5rem;
+    color: var(--gray-900);
     font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
 }
 
 h1 {
     font-size: 2.25rem;
+    font-weight: 700;
+    margin-bottom: var(--space-4);
 }
 
 h2 {
-    font-size: 1.75rem;
+    font-size: 1.875rem;
+    font-weight: 600;
+    margin-bottom: var(--space-3);
 }
 
 h3 {
     font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: var(--space-3);
 }
 
 h4 {
     font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: var(--space-2);
 }
 
 p {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-4);
+    color: var(--gray-600);
+    line-height: 1.6;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.text-xs {
+    font-size: 0.75rem;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+}
+
+.font-mono {
+    font-family: var(--font-mono);
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+.font-bold {
+    font-weight: 700;
 }
 
 /* Header and Navigation */
 header {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-    color: white;
-    padding: 1rem 0;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    position: relative;
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+    padding: var(--space-4) 0;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(8px);
+    background-color: rgba(255, 255, 255, 0.95);
 }
 
 .header-content {
@@ -72,160 +248,361 @@ header {
 }
 
 .logo {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: #ecf0f1;
+    color: var(--primary-600);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.logo:hover {
+    color: var(--primary-700);
 }
 
 .logo::before {
     content: "📅";
-    font-size: 1.5rem;
+    font-size: 1.25rem;
 }
 
 nav ul {
     list-style: none;
     display: flex;
-    gap: 1rem;
+    gap: var(--space-2);
+    align-items: center;
 }
 
 nav a {
-    color: #ecf0f1;
+    color: var(--gray-600);
     text-decoration: none;
-    padding: 0.75rem 1.25rem;
-    border-radius: 6px;
-    transition: all 0.3s ease;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
     font-weight: 500;
+    font-size: 0.875rem;
     position: relative;
+    border: 1px solid transparent;
 }
 
 nav a:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-1px);
+    color: var(--gray-900);
+    background-color: var(--gray-100);
+    border-color: var(--gray-200);
 }
 
 nav a.active {
-    background-color: #3498db;
-    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+    color: var(--primary-600);
+    background-color: var(--primary-50);
+    border-color: var(--primary-200);
 }
 
-/* Main content */
-main {
-    flex: 1;
-    padding: 2rem 0;
+/* Heineken Theme Specific Styles */
+:root[data-theme="heineken"] header {
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+    border-bottom: 3px solid var(--accent-500);
 }
 
-.page-header {
-    margin-bottom: 2rem;
-    text-align: center;
+:root[data-theme="heineken"] .header-content {
+    color: white;
 }
 
-.page-title {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-    color: #2c3e50;
+:root[data-theme="heineken"] .logo {
+    color: white;
+    font-weight: 800;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="heineken"] .logo:hover {
+    color: var(--accent-200);
+}
+
+:root[data-theme="heineken"] nav a {
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+:root[data-theme="heineken"] nav a:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+:root[data-theme="heineken"] nav a.active {
+    color: var(--primary-800);
+    background-color: var(--accent-500);
+    border-color: var(--accent-600);
+    font-weight: 600;
+}
+
+:root[data-theme="heineken"] .card-featured {
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--accent-50) 50%, white 100%);
+    border: 3px solid var(--primary-500);
+    box-shadow: 0 8px 25px rgba(0, 166, 81, 0.2);
+}
+
+:root[data-theme="heineken"] .card-featured::before {
+    background: linear-gradient(90deg, var(--primary-500), var(--accent-500), var(--primary-500));
+    height: 6px;
+}
+
+:root[data-theme="heineken"] .card-featured .card-title {
+    color: var(--primary-700);
     font-weight: 700;
 }
 
-.page-subtitle {
-    color: #7f8c8d;
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
+:root[data-theme="heineken"] .btn {
+    font-weight: 600;
 }
 
-/* Cards and sections */
+:root[data-theme="heineken"] .btn:not(.btn-outline):not(.btn-secondary):not(.btn-danger):not(.btn-warning) {
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+    border-color: var(--primary-600);
+    box-shadow: 0 4px 14px 0 rgba(0, 166, 81, 0.3);
+}
+
+:root[data-theme="heineken"] .btn:not(.btn-outline):not(.btn-secondary):not(.btn-danger):not(.btn-warning):hover {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+    box-shadow: 0 6px 20px 0 rgba(0, 166, 81, 0.4);
+}
+
+:root[data-theme="heineken"] .btn-success {
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+    border-color: var(--primary-600);
+}
+
+:root[data-theme="heineken"] .btn-success:hover {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+}
+
+:root[data-theme="heineken"] .btn-secondary {
+    background-color: var(--primary-50);
+    color: var(--primary-700);
+    border-color: var(--primary-200);
+}
+
+:root[data-theme="heineken"] .btn-secondary:hover {
+    background-color: var(--primary-100);
+    color: var(--primary-800);
+    border-color: var(--primary-300);
+}
+
+:root[data-theme="heineken"] .btn-warning {
+    background-color: var(--accent-100);
+    color: var(--accent-700);
+    border-color: var(--accent-300);
+}
+
+:root[data-theme="heineken"] .btn-warning:hover {
+    background-color: var(--accent-200);
+    color: var(--accent-800);
+    border-color: var(--accent-400);
+}
+
+:root[data-theme="heineken"] .btn-muted {
+    background-color: transparent;
+    color: var(--primary-400);
+    border-color: var(--primary-200);
+}
+
+:root[data-theme="heineken"] .btn-muted:hover {
+    background-color: var(--primary-50);
+    color: var(--primary-600);
+    border-color: var(--primary-300);
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    color: var(--gray-600);
+    background: transparent;
+    border: 1px solid var(--gray-300);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-lg);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.theme-toggle:hover {
+    color: var(--primary-600);
+    background-color: var(--primary-50);
+    border-color: var(--primary-300);
+}
+
+/* Heineken Theme Toggle Styling */
+:root[data-theme="heineken"] .theme-toggle {
+    background: var(--accent-500);
+    color: white;
+    border-color: var(--accent-600);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(255, 153, 0, 0.3);
+}
+
+:root[data-theme="heineken"] .theme-toggle:hover {
+    background: var(--accent-600);
+    color: white;
+    border-color: var(--accent-700);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 153, 0, 0.4);
+}
+
+/* Main Content */
+main {
+    flex: 1;
+    padding: var(--space-8) 0;
+}
+
+.page-header {
+    margin-bottom: var(--space-8);
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: var(--space-2);
+}
+
+.page-subtitle {
+    color: var(--gray-600);
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Cards and Sections */
 .card {
     background: white;
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    transition: all var(--transition-normal);
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-md);
+    border-color: var(--gray-300);
 }
 
 .card-header {
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #ecf0f1;
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .card-title {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-    color: #2c3e50;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: var(--space-2);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
 }
 
 .card-description {
-    color: #7f8c8d;
-    font-size: 0.95rem;
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* Featured Card (for prominent content like current schedule) */
+.card-featured {
+    background: linear-gradient(135deg, var(--primary-50) 0%, white 100%);
+    border: 2px solid var(--primary-200);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.card-featured::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-500), var(--accent-500));
+}
+
+.card-featured .card-title {
+    color: var(--primary-700);
+    font-size: 1.5rem;
+}
+
+.card-featured:hover {
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-1px);
 }
 
 /* Forms */
 .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-6);
 }
 
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    gap: var(--space-4);
 }
 
 label {
     display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 0.95rem;
+    margin-bottom: var(--space-2);
+    font-weight: 500;
+    color: var(--gray-700);
+    font-size: 0.875rem;
 }
 
 .label-required::after {
     content: " *";
-    color: #e74c3c;
+    color: var(--error-500);
 }
 
 input,
 select,
 textarea {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border: 2px solid #e1e8ed;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    background-color: #fff;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-lg);
+    background: white;
+    font-size: 0.875rem;
+    transition: all var(--transition-fast);
+    font-family: inherit;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
     outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-    background-color: #fbfcfd;
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px var(--primary-100);
+}
+
+input::placeholder {
+    color: var(--gray-400);
+}
+
+.form-help {
+    margin-top: var(--space-1);
+    font-size: 0.75rem;
+    color: var(--gray-500);
 }
 
 input:invalid,
 select:invalid,
 textarea:invalid {
-    border-color: #e74c3c;
+    border-color: var(--error-500);
 }
 
 input:invalid:focus,
 select:invalid:focus,
 textarea:invalid:focus {
-    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+    box-shadow: 0 0 0 3px var(--error-100);
 }
 
 .input-group {
@@ -237,33 +614,22 @@ textarea:invalid:focus {
 .checkbox-group {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
 }
 
 .checkbox-group input[type="checkbox"] {
     width: auto;
-    transform: scale(1.2);
-}
-
-.form-help {
-    font-size: 0.875rem;
-    color: #7f8c8d;
-    margin-top: 0.25rem;
+    accent-color: var(--primary-500);
 }
 
 .form-error {
-    font-size: 0.875rem;
-    color: #e74c3c;
-    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--error-600);
+    margin-top: var(--space-1);
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-}
-
-.form-error::before {
-    content: "⚠️";
-    font-size: 0.8rem;
+    gap: var(--space-1);
 }
 
 /* Buttons */
@@ -271,103 +637,117 @@ textarea:invalid:focus {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background-color: #3498db;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    background-color: var(--primary-600);
     color: white;
     text-decoration: none;
-    border: none;
-    border-radius: 8px;
+    border: 1px solid var(--primary-600);
+    border-radius: var(--radius-lg);
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: inherit;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+    white-space: nowrap;
     min-width: 120px;
 }
 
 .btn:hover {
-    background-color: #2980b9;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    background-color: var(--primary-700);
+    border-color: var(--primary-700);
+    box-shadow: var(--shadow-md);
 }
 
 .btn:active {
-    transform: translateY(0);
+    transform: translateY(1px);
 }
 
 .btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
     transform: none;
-    box-shadow: none;
-}
-
-.btn-primary {
-    background-color: #3498db;
-}
-
-.btn-primary:hover {
-    background-color: #2980b9;
 }
 
 .btn-secondary {
-    background-color: #95a5a6;
-    box-shadow: 0 2px 4px rgba(149, 165, 166, 0.2);
+    background-color: var(--gray-100);
+    color: var(--gray-700);
+    border-color: var(--gray-300);
 }
 
 .btn-secondary:hover {
-    background-color: #7f8c8d;
+    background-color: var(--gray-200);
+    color: var(--gray-800);
+    border-color: var(--gray-400);
 }
 
 .btn-success {
-    background-color: #27ae60;
-    box-shadow: 0 2px 4px rgba(39, 174, 96, 0.2);
+    background-color: var(--primary-600);
+    border-color: var(--primary-600);
 }
 
 .btn-success:hover {
-    background-color: #229954;
+    background-color: var(--primary-700);
+    border-color: var(--primary-700);
 }
 
 .btn-warning {
-    background-color: #f39c12;
-    box-shadow: 0 2px 4px rgba(243, 156, 18, 0.2);
+    background-color: var(--gray-100);
+    color: var(--gray-700);
+    border-color: var(--gray-300);
 }
 
 .btn-warning:hover {
-    background-color: #e67e22;
+    background-color: var(--gray-200);
+    color: var(--gray-800);
+    border-color: var(--gray-400);
 }
 
 .btn-danger {
-    background-color: #e74c3c;
-    box-shadow: 0 2px 4px rgba(231, 76, 60, 0.2);
+    background-color: var(--error-600);
+    border-color: var(--error-600);
 }
 
 .btn-danger:hover {
-    background-color: #c0392b;
+    background-color: var(--error-700);
+    border-color: var(--error-700);
 }
 
 .btn-outline {
     background-color: transparent;
-    border: 2px solid currentColor;
-    box-shadow: none;
+    color: var(--primary-600);
+    border-color: var(--primary-300);
 }
 
 .btn-outline:hover {
-    background-color: currentColor;
-    color: white;
+    background-color: var(--primary-50);
+    color: var(--primary-700);
+    border-color: var(--primary-400);
+}
+
+.btn-muted {
+    background-color: transparent;
+    color: var(--gray-500);
+    border-color: var(--gray-200);
+}
+
+.btn-muted:hover {
+    background-color: var(--gray-50);
+    color: var(--gray-700);
+    border-color: var(--gray-300);
 }
 
 .btn-small {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    min-width: 80px;
+    padding: var(--space-2) var(--space-4);
+    font-size: 0.75rem;
+    min-width: auto;
 }
 
 .btn-large {
-    padding: 1rem 2rem;
-    font-size: 1.125rem;
-    min-width: 160px;
+    padding: var(--space-4) var(--space-8);
+    font-size: 1rem;
+    min-width: auto;
 }
 
 .btn-group {
@@ -416,50 +796,70 @@ textarea:invalid:focus {
 /* Tables */
 .table-container {
     overflow-x: auto;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
     background: white;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
 }
 
 th,
 td {
-    padding: 1rem;
+    padding: var(--space-4);
     text-align: left;
-    border-bottom: 1px solid #e1e8ed;
+    border-bottom: 1px solid var(--gray-100);
 }
 
 th {
-    background-color: #f8f9fa;
+    background-color: var(--gray-50);
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--gray-700);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
 tbody tr {
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast);
 }
 
 tbody tr:hover {
-    background-color: #f8f9fa;
-    transform: scale(1.01);
+    background-color: var(--gray-50);
 }
 
 tbody tr:last-child td {
     border-bottom: none;
 }
 
+/* Heineken Theme Table Styling */
+:root[data-theme="heineken"] th {
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+    color: white;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="heineken"] tbody tr:hover {
+    background: linear-gradient(90deg, var(--primary-50) 0%, var(--accent-50) 100%);
+}
+
+:root[data-theme="heineken"] .table-container {
+    border: 2px solid var(--primary-200);
+    box-shadow: 0 4px 12px rgba(0, 166, 81, 0.1);
+}
+
 .table-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-2);
     justify-content: flex-end;
+    align-items: center;
 }
 
 /* Messages and Alerts */
@@ -650,6 +1050,18 @@ tbody tr:last-child td {
     margin-top: 0.5rem;
     padding-top: 0.5rem;
     border-top: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.schedule-btn {
+    flex: 1;
+    font-size: 0.75rem;
+    padding: 0.375rem 0.5rem;
+    min-width: 60px;
+    text-align: center;
 }
 
 .empty-day {
@@ -676,6 +1088,24 @@ tbody tr:last-child td {
     border-left: 4px solid #3498db;
 }
 
+/* Heineken Theme Stat Cards */
+:root[data-theme="heineken"] .stat-card {
+    background: linear-gradient(135deg, white 0%, var(--primary-50) 100%);
+    border-left: 6px solid var(--primary-500);
+    border-top: 2px solid var(--accent-500);
+    box-shadow: 0 6px 20px rgba(0, 166, 81, 0.15);
+}
+
+:root[data-theme="heineken"] .stat-number {
+    color: var(--primary-700);
+    font-weight: 800;
+}
+
+:root[data-theme="heineken"] .stat-label {
+    color: var(--primary-600);
+    font-weight: 600;
+}
+
 .stat-number {
     font-size: 2.5rem;
     font-weight: 700;
@@ -691,18 +1121,26 @@ tbody tr:last-child td {
 
 /* Footer */
 footer {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-    color: #ecf0f1;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+    color: var(--gray-600);
     text-align: center;
-    padding: 2rem 0;
-    margin-top: 3rem;
+    padding: var(--space-8) 0;
+    margin-top: var(--space-16);
+}
+
+/* Heineken Theme Footer */
+:root[data-theme="heineken"] footer {
+    background: linear-gradient(135deg, var(--primary-800) 0%, var(--primary-900) 100%);
+    border-top: 3px solid var(--accent-500);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .footer-content {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
 }
 
 /* Utility classes */

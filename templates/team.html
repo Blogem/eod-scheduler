@@ -3,7 +3,7 @@
     <!-- Add New Team Member -->
     <div class="card">
         <div class="card-header">
-            <h2 class="card-title">👥 Add New Team Member</h2>
+            <h2 class="card-title">Add New Team Member</h2>
             <p class="card-description">Add team members to include them in schedule rotation</p>
         </div>
         <form method="post" action="/team">
@@ -25,14 +25,14 @@
                 </div>
                 <div class="form-help">Only active members are included in schedule rotation</div>
             </div>
-            <button type="submit" class="btn btn-success">✨ Add Team Member</button>
+            <button type="submit" class="btn">Add Team Member</button>
         </form>
     </div>
 
     <!-- Team Statistics -->
     <div class="card">
         <div class="card-header">
-            <h2 class="card-title">📊 Team Overview</h2>
+            <h2 class="card-title">Team Overview</h2>
             <p class="card-description">Current team statistics</p>
         </div>
         <div class="stats-grid">
@@ -96,7 +96,7 @@
                     <td>{{.DateAdded.Format "Jan 2, 2006"}}</td>
                     <td>
                         <div class="table-actions">
-                            <a href="/team/{{.ID}}/edit" class="btn btn-small btn-secondary">✏️ Edit</a>
+                            <a href="/team/{{.ID}}/edit" class="btn btn-small btn-secondary">Edit</a>
                             <form style="display: inline;" method="post" action="/team/{{.ID}}/delete">
                                 <button type="submit" class="btn btn-small btn-danger"
                                     data-confirm="Are you sure you want to delete {{.Name}}? This will also remove their future schedule entries and cannot be undone.">
@@ -127,7 +127,7 @@
     </div>
     <div class="grid grid-2">
         <div>
-            <h4>✅ Active Members</h4>
+            <h4>Active Members</h4>
             <ul style="margin-left: 1rem; color: #7f8c8d;">
                 <li>Included in schedule rotation</li>
                 <li>Receive schedule assignments</li>
@@ -135,7 +135,7 @@
             </ul>
         </div>
         <div>
-            <h4>❌ Inactive Members</h4>
+            <h4>Inactive Members</h4>
             <ul style="margin-left: 1rem; color: #7f8c8d;">
                 <li>Excluded from scheduling</li>
                 <li>Historical data preserved</li>

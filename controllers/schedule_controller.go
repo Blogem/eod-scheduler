@@ -144,6 +144,7 @@ func (c *ScheduleController) ShowTakeoverForm(w http.ResponseWriter, r *http.Req
 		TeamMembers []models.TeamMember
 		Entries     []models.ScheduleEntry
 		Form        *models.TakeoverForm
+		Redirect    string
 	}{
 		Title:       "Take Over Shift",
 		CurrentPage: "schedule",
@@ -152,6 +153,7 @@ func (c *ScheduleController) ShowTakeoverForm(w http.ResponseWriter, r *http.Req
 		TeamMembers: teamMembers,
 		Entries:     entries,
 		Form:        form,
+		Redirect:    r.URL.Query().Get("redirect"),
 	}
 
 	renderTemplate(w, "schedule_takeover", "templates/schedule_takeover.html", templateData)
@@ -206,6 +208,7 @@ func (c *ScheduleController) CreateTakeover(w http.ResponseWriter, r *http.Reque
 			TeamMembers []models.TeamMember
 			Entries     []models.ScheduleEntry
 			Form        *models.TakeoverForm
+			Redirect    string
 		}{
 			Title:       "Take Over Shift",
 			CurrentPage: "schedule",
@@ -214,6 +217,7 @@ func (c *ScheduleController) CreateTakeover(w http.ResponseWriter, r *http.Reque
 			TeamMembers: teamMembers,
 			Entries:     entries,
 			Form:        form,
+			Redirect:    r.FormValue("redirect"),
 		}
 
 		renderTemplateWithStatus(w, http.StatusBadRequest, "schedule_takeover_error", "templates/schedule_takeover.html", templateData)
@@ -241,8 +245,18 @@ func (c *ScheduleController) CreateTakeover(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Redirect to schedule page after successful takeover
-	http.Redirect(w, r, "/schedule?success=Shift takeover completed successfully", http.StatusSeeOther)
+	// Redirect to originating page or schedule page by default after successful takeover
+	redirectURL := r.FormValue("redirect")
+	if redirectURL == "" {
+		redirectURL = "/schedule"
+	}
+	// Add success message as URL parameter
+	if redirectURL == "/" {
+		redirectURL += "?success=Shift takeover completed successfully"
+	} else {
+		redirectURL += "?success=Shift takeover completed successfully"
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 // ShowEditForm handles GET /schedule/edit/{id}
@@ -281,6 +295,7 @@ func (c *ScheduleController) ShowEditForm(w http.ResponseWriter, r *http.Request
 		Entry       *models.ScheduleEntry
 		TeamMembers []models.TeamMember
 		Form        *models.ScheduleEntryForm
+		Redirect    string
 	}{
 		Title:       "Edit Schedule Entry",
 		CurrentPage: "schedule",
@@ -289,6 +304,7 @@ func (c *ScheduleController) ShowEditForm(w http.ResponseWriter, r *http.Request
 		Entry:       entry,
 		TeamMembers: teamMembers,
 		Form:        form,
+		Redirect:    r.URL.Query().Get("redirect"),
 	}
 
 	renderTemplate(w, "schedule_edit", "templates/schedule_edit.html", templateData)
@@ -344,6 +360,7 @@ func (c *ScheduleController) UpdateEntry(w http.ResponseWriter, r *http.Request)
 			Entry       *models.ScheduleEntry
 			TeamMembers []models.TeamMember
 			Form        *models.ScheduleEntryForm
+			Redirect    string
 		}{
 			Title:       "Edit Schedule Entry",
 			CurrentPage: "schedule",
@@ -352,14 +369,19 @@ func (c *ScheduleController) UpdateEntry(w http.ResponseWriter, r *http.Request)
 			Entry:       entry,
 			TeamMembers: teamMembers,
 			Form:        form,
+			Redirect:    r.FormValue("redirect"),
 		}
 
 		renderTemplateWithStatus(w, http.StatusBadRequest, "schedule_edit_error", "templates/schedule_edit.html", templateData)
 		return
 	}
 
-	// Redirect to schedule page after successful update
-	http.Redirect(w, r, "/schedule", http.StatusSeeOther)
+	// Redirect to originating page or schedule page by default
+	redirectURL := r.FormValue("redirect")
+	if redirectURL == "" {
+		redirectURL = "/schedule"
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 // RemoveOverride handles POST /schedule/remove/{id}
@@ -372,11 +394,19 @@ func (c *ScheduleController) RemoveOverride(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := c.services.Schedule.RemoveManualOverride(id); err != nil {
-		// Redirect back with error
-		http.Redirect(w, r, "/schedule?error="+err.Error(), http.StatusSeeOther)
+		// Redirect back with error to originating page or schedule page
+		redirectURL := r.FormValue("redirect")
+		if redirectURL == "" {
+			redirectURL = "/schedule"
+		}
+		http.Redirect(w, r, redirectURL+"?error="+err.Error(), http.StatusSeeOther)
 		return
 	}
 
-	// Redirect to schedule page after successful removal
-	http.Redirect(w, r, "/schedule", http.StatusSeeOther)
+	// Redirect to originating page or schedule page by default after successful removal
+	redirectURL := r.FormValue("redirect")
+	if redirectURL == "" {
+		redirectURL = "/schedule"
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }

@@ -3,13 +3,13 @@
 <div class="schedule-header">
     <div>
         <h2 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-            📅 Weekly Schedule View
+            Weekly Schedule View
         </h2>
         <p style="color: #7f8c8d; margin: 0;">Manage your team's duty assignments</p>
     </div>
     <div class="btn-group" style="margin: 0;">
         <form method="post" action="/schedule/generate" style="display: inline;">
-            <button type="submit" class="btn btn-success">🚀 Generate Schedule</button>
+            <button type="submit" class="btn">Generate Schedule</button>
         </form>
     </div>
 </div>
@@ -19,20 +19,20 @@
     <div class="week-controls">
         {{if .Schedule}}
         <a href="/schedule/week/{{(.Schedule.StartDate.AddDate 0 0 -7).Format "2006-01-02"}}"
-            class="btn btn-secondary">⬅️ Previous Week</a>
+            class="btn btn-secondary">← Previous Week</a>
         {{end}}
     </div>
     <div class="week-title">
         {{if .Schedule}}
-        📆 Week of {{.Schedule.StartDate.Format "January 2, 2006"}}
+        Week of {{.Schedule.StartDate.Format "January 2, 2006"}}
         {{else}}
-        📆 Schedule View
+        Schedule View
         {{end}}
     </div>
     <div class="week-controls">
         {{if .Schedule}}
         <a href="/schedule/week/{{(.Schedule.StartDate.AddDate 0 0 7).Format "2006-01-02"}}"
-            class="btn btn-secondary">Next Week ➡️</a>
+            class="btn btn-secondary">Next Week →</a>
         {{end}}
     </div>
 </div>
@@ -51,28 +51,27 @@
             {{if .Entries}}
             {{range .Entries}}
             <div class="schedule-entry {{if .IsManualOverride}}override{{end}}">
-                <div class="schedule-entry-name">👤 {{.TeamMemberName}}</div>
-                <div class="schedule-entry-time">⏰ {{.StartTime}} - {{.EndTime}}</div>
-                {{if .IsManualOverride}}
+                <div class="schedule-entry-name">{{.TeamMemberName}}</div>
+                <div class="schedule-entry-time">{{.StartTime}} - {{.EndTime}}</div>
                 <div style="font-size: 0.75rem; opacity: 0.9; margin-top: 0.25rem;">
-                    ✏️ Manual Override
+                    {{if .IsManualOverride}}
+                    Manual Override
+                    {{else}}
+                    &nbsp;
+                    {{end}}
                 </div>
-                {{end}}
                 <div class="schedule-actions">
-                    <a href="/schedule/takeover?entry={{.ID}}" class="btn btn-small"
-                        style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: rgba(52, 152, 219, 0.8);">
-                        🔄 Take Over
+                    {{if not .IsManualOverride }}
+                    <a href="/schedule/takeover?entry={{.ID}}&redirect=/schedule" class="btn btn-small btn-secondary schedule-btn">
+                        Take Over
                     </a>
-                    <a href="/schedule/edit/{{.ID}}" class="btn btn-small"
-                        style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.2);">
-                        ✏️ Edit
-                    </a>
+                    {{end}}
                     {{if .IsManualOverride}}
                     <form method="post" action="/schedule/remove/{{.ID}}" style="display: inline;">
-                        <button type="submit" class="btn btn-small"
-                            style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: rgba(231, 76, 60, 0.8); border: none; cursor: pointer;"
+                        <input type="hidden" name="redirect" value="/schedule">
+                        <button type="submit" class="btn btn-small btn-danger schedule-btn"
                             onclick="return confirm('Remove this manual override? The original schedule will be restored.');">
-                            🗑️ Remove
+                            Remove
                         </button>
                     </form>
                     {{end}}
@@ -81,7 +80,6 @@
             {{end}}
             {{else}}
             <div class="empty-day">
-                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🏖️</div>
                 <div style="font-size: 0.8rem; opacity: 0.7;">No duty assigned</div>
             </div>
             {{end}}
@@ -92,14 +90,14 @@
 {{else}}
 <div class="card">
     <div class="empty-day">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">📅</div>
+        <div style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.6;">∎</div>
         <h3>No schedule data available</h3>
         <p>Generate a schedule to see the weekly duty assignments.</p>
         <div class="btn-group mt-3">
             <form method="post" action="/schedule/generate" style="display: inline;">
-                <button type="submit" class="btn btn-success">🚀 Generate Schedule</button>
+                <button type="submit" class="btn btn-success">Generate Schedule</button>
             </form>
-            <a href="/" class="btn btn-secondary">🏠 Go to Dashboard</a>
+            <a href="/" class="btn btn-secondary">Go to Dashboard</a>
         </div>
     </div>
 </div>
@@ -109,7 +107,7 @@
 {{if .Schedule}}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">📊 Week Statistics</h2>
+        <h2 class="card-title">Week Statistics</h2>
         <p class="card-description">Overview of this week's schedule</p>
     </div>
 

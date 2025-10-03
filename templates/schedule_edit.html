@@ -5,6 +5,7 @@
         <p class="card-description">Modify the duty assignment for this date</p>
     </div>
     <form method="post" action="/schedule/edit/{{.Entry.ID}}">
+        <input type="hidden" name="redirect" value="{{.Redirect}}">
         <div class="form-group">
             <label for="date" class="label-required">Date</label>
             <input type="date" id="date" name="date" value="{{.Form.Date}}" required>
@@ -46,7 +47,7 @@
 
         <div class="btn-group">
             <button type="submit" class="btn btn-success">💾 Update Entry</button>
-            <a href="/schedule" class="btn btn-secondary">❌ Cancel</a>
+            <a href="{{if .Redirect}}{{.Redirect}}{{else}}/schedule{{end}}" class="btn btn-secondary">❌ Cancel</a>
         </div>
     </form>
 </div>

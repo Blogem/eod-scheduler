@@ -2,7 +2,7 @@
 <!-- Working Hours Configuration -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">⏰ Working Hours Configuration</h2>
+        <h2 class="card-title">Working Hours Configuration</h2>
         <p class="card-description">Configure which days are working days and their hours</p>
     </div>
     <form method="post" action="/hours">
@@ -23,7 +23,7 @@
                     <tr>
                         <td>
                             <strong style="display: flex; align-items: center; gap: 0.5rem;">
-                                {{if or (eq $dayNum 6) (eq $dayNum 7)}}🏖️{{else}}📅{{end}} {{$dayName}}
+                                {{$dayName}}
                             </strong>
                         </td>
                         <td>
@@ -33,11 +33,11 @@
                                     $workingHours.Active}}checked{{end}}{{end}}>
                                 <label for="active_{{$dayNum}}">
                                     {{if $workingHours}}{{if $workingHours.Active}}
-                                    <span style="color: #27ae60; font-weight: 600;">✅ Active</span>
+                                    <span style="color: #27ae60; font-weight: 600;">Active</span>
                                     {{else}}
-                                    <span style="color: #95a5a6;">⏸️ Inactive</span>
+                                    <span style="color: #95a5a6;">Inactive</span>
                                     {{end}}{{else}}
-                                    <span style="color: #95a5a6;">⏸️ Inactive</span>
+                                    <span style="color: #95a5a6;">Inactive</span>
                                     {{end}}
                                 </label>
                             </div>
@@ -60,10 +60,9 @@
             </table>
         </div>
         <div class="btn-group">
-            <button type="submit" class="btn btn-success">💾 Save Working Hours</button>
-            <button type="button" class="btn btn-secondary" onclick="setDefaultHours()">🏢 Set Default (Mon-Fri
-                9-5)</button>
-            <button type="button" class="btn btn-warning" onclick="clearAllHours()">🗑️ Clear All</button>
+            <button type="submit" class="btn">Save Working Hours</button>
+            <button type="button" class="btn btn-secondary" onclick="setDefaultHours()">Set Default (Mon-Fri 9-5)</button>
+            <button type="button" class="btn btn-warning" onclick="clearAllHours()">Clear All</button>
         </div>
     </form>
 </div>
@@ -71,7 +70,7 @@
 <!-- Current Configuration Summary -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">📊 Configuration Summary</h2>
+        <h2 class="card-title">Configuration Summary</h2>
         <p class="card-description">Overview of your working hours setup</p>
     </div>
 
@@ -112,12 +111,12 @@
 <!-- Help and Tips -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">💡 Working Hours Tips</h2>
+        <h2 class="card-title">Working Hours Tips</h2>
         <p class="card-description">Best practices for configuring working hours</p>
     </div>
     <div class="grid grid-2">
         <div>
-            <h4>✅ Active Days</h4>
+            <h4>Active Days</h4>
             <ul style="margin-left: 1rem; color: #7f8c8d;">
                 <li>Included in schedule generation</li>
                 <li>Team members get assigned</li>
@@ -125,7 +124,7 @@
             </ul>
         </div>
         <div>
-            <h4>⭕ Inactive Days</h4>
+            <h4>Inactive Days</h4>
             <ul style="margin-left: 1rem; color: #7f8c8d;">
                 <li>Skipped during scheduling</li>
                 <li>No assignments created</li>
@@ -134,7 +133,7 @@
         </div>
     </div>
     <div class="message message-info mt-3">
-        <strong>⏰ Time Format:</strong> Use 24-hour format (e.g., 09:00, 17:00).
+        <strong>Time Format:</strong> Use 24-hour format (e.g., 09:00, 17:00).
         Changes affect future schedules only, not existing entries.
     </div>
 </div>

@@ -2,7 +2,7 @@
 <!-- Welcome Message -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">🏠 Welcome to EoD Scheduler</h2>
+                    <h2 class="card-title">Welcome to EoD Scheduler</h2>
         <p class="card-description">Your central hub for managing engineer on duty schedules</p>
     </div>
     <div class="flex-between">
@@ -13,13 +13,12 @@
     </div>
 </div>
 
-<div class="grid grid-2">
-    <!-- Current Week Schedule -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">📅 Current Week Schedule</h2>
-            <p class="card-description">This week's duty assignments</p>
-        </div>
+<!-- Current Week Schedule - Prominent Section -->
+<div class="card card-featured">
+    <div class="card-header">
+        <h2 class="card-title">This Week's Schedule</h2>
+        <p class="card-description">Current duty assignments for this week</p>
+    </div>
         {{if .Data.CurrentWeek}}
         <div class="table-container">
             <table>
@@ -36,25 +35,21 @@
                     <tr>
                         <td><strong>{{.GetFormattedDate}}</strong></td>
                         <td>
-                            <span style="display: flex; align-items: center; gap: 0.5rem;">
-                                👤 {{.TeamMemberName}}
-                            </span>
+                            <span class="font-semibold">{{.TeamMemberName}}</span>
                         </td>
                         <td>
-                            <span style="font-family: monospace; font-weight: 600;">
+                            <span class="font-mono font-semibold">
                                 {{.StartTime}} - {{.EndTime}}
                             </span>
                         </td>
                         <td>
                             {{if .IsManualOverride}}
-                            <span
-                                style="color: #f39c12; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
-                                ✏️ Manual Override
+                            <span class="text-sm font-medium" style="color: var(--warning-600);">
+                                Manual Override
                             </span>
                             {{else}}
-                            <span
-                                style="color: #27ae60; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
-                                🤖 Auto-Generated
+                            <span class="text-sm font-medium" style="color: var(--success-600);">
+                                Auto-Generated
                             </span>
                             {{end}}
                         </td>
@@ -65,38 +60,14 @@
         </div>
         {{else}}
         <div class="empty-day">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">📅</div>
+            <div style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.6;">∎</div>
             <h3>No schedule for this week</h3>
             <p>Generate a schedule to get started with duty assignments.</p>
-            <a href="#" onclick="generateSchedule()" class="btn btn-primary mt-2">🚀 Generate Schedule</a>
+            <a href="#" onclick="generateSchedule()" class="btn mt-2">Generate Schedule</a>
         </div>
         {{end}}
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">📊 Quick Stats</h2>
-            <p class="card-description">Overview of your team and schedule</p>
-        </div>
-        <div class="stats-grid">
-            <div class="stat-card" style="border-color: #3498db;">
-                <span class="stat-number">{{.Data.TeamCount}}</span>
-                <div style="color: #7f8c8d;">Active Team Members</div>
-            </div>
-            <div style="text-align: center; padding: 1rem;">
-                <div style="font-size: 2rem; font-weight: bold; color: #27ae60;">{{.Data.ActiveDays}}</div>
-                <div style="color: #7f8c8d;">Working Days/Week</div>
-            </div>
-        </div>
-        {{if not .Data.LastGenerated.IsZero}}
-        <div
-            style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; text-align: center; color: #7f8c8d;">
-            Last generated: {{.Data.LastGenerated.Format "Jan 2, 2006 at 3:04pm"}}
-        </div>
-        {{end}}
-    </div>
 </div>
+
 
 <!-- Next Two Weeks -->
 {{if .Data.NextWeeks}}
@@ -131,10 +102,11 @@
                         {{end}}
                     </td>
                     <td>
-                        <a href="/schedule/edit/{{.ID}}" class="btn btn-small btn-secondary">Edit</a>
+                        <a href="/schedule/edit/{{.ID}}?redirect=/" class="btn btn-small btn-secondary">Edit</a>
                         {{if .IsManualOverride}}
                         <form style="display: inline;" method="post" action="/schedule/remove/{{.ID}}"
                             onsubmit="return confirm('Remove this manual override?')">
+                            <input type="hidden" name="redirect" value="/">
                             <button type="submit" class="btn btn-small btn-danger">Remove Override</button>
                         </form>
                         {{end}}
@@ -147,26 +119,6 @@
 </div>
 {{end}}
 
-<!-- Action Buttons -->
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">Actions</h2>
-    </div>
-    <div class="btn-group" style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; align-items: center;">
-        <form method="post" action="/schedule/generate" style="display: inline;">
-            <input type="hidden" name="force" value="false">
-            <button type="submit" class="btn btn-success" style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;">
-                🚀 Generate Schedule
-            </button>
-        </form>
-        <a href="/schedule/override" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; text-decoration: none;">
-            ✏️ Create Manual Override
-        </a>
-        <a href="/schedule" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s; text-decoration: none;">
-            📅 View Full Schedule
-        </a>
-    </div>
-</div>
 
 <style>
     .btn-group .btn:hover {

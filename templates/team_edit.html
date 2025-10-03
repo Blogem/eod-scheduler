@@ -1,9 +1,7 @@
 {{define "content"}}
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">✏️ Edit Team Member</h2>
-        <p class="card-description">Update team member information and status</p>
-    </div>
+    <div class="card">
+        <h2 class="card-title">Edit Team Member</h2>
+        <p class="card-description">Update team member information and settings</p>
     <form method="post" action="/team/{{.Member.ID}}">
         <div class="form-group">
             <label for="name" class="label-required">Name</label>
@@ -24,8 +22,8 @@
             <div class="form-help">Only active members are included in schedule rotation</div>
         </div>
         <div class="btn-group">
-            <button type="submit" class="btn btn-success">💾 Update Team Member</button>
-            <a href="/team" class="btn btn-secondary">❌ Cancel</a>
+            <button type="submit" class="btn btn-success">Update Team Member</button>
+            <a href="/team" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 </div>
@@ -33,13 +31,13 @@
 <!-- Member Information -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">👤 Member Information</h2>
+        <h2 class="card-title">Member Information</h2>
         <p class="card-description">Current details about this team member</p>
     </div>
     <div class="stats-grid">
         <div class="stat-card" style="border-color: {{if .Member.Active}}#27ae60{{else}}#e74c3c{{end}};">
             <span class="stat-number" style="color: {{if .Member.Active}}#27ae60{{else}}#e74c3c{{end}};">
-                {{if .Member.Active}}✅{{else}}❌{{end}}
+                {{if .Member.Active}}●{{else}}○{{end}}
             </span>
             <span class="stat-label">
                 {{if .Member.Active}}Active Member{{else}}Inactive Member{{end}}
@@ -60,7 +58,7 @@
 {{if .Member.Active}}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">⚠️ Important Notes</h2>
+        <h2 class="card-title">Important Notes</h2>
     </div>
     <div class="message message-warning">
         <p><strong>Deactivating this member will:</strong></p>
@@ -74,7 +72,7 @@
 {{else}}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">💡 Reactivation</h2>
+        <h2 class="card-title">Reactivation</h2>
     </div>
     <div class="message message-success">
         <p><strong>Activating this member will:</strong></p>
