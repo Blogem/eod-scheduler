@@ -414,36 +414,57 @@ nav a.active {
 
 /* Theme Toggle Button */
 .theme-toggle {
-    color: var(--gray-600);
-    background: transparent;
-    border: 1px solid var(--gray-300);
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-lg);
+    color: var(--gray-700);
+    background: var(--gray-100);
+    border: 2px solid var(--gray-300);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-xl);
     font-size: 0.75rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-fast);
     white-space: nowrap;
+    position: relative;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: var(--shadow-sm);
+    margin-left: var(--space-4);
 }
 
 .theme-toggle:hover {
-    color: var(--primary-600);
-    background-color: var(--primary-50);
-    border-color: var(--primary-300);
+    color: white;
+    background: var(--accent-500);
+    border-color: var(--accent-600);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.theme-toggle:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Heineken Theme Toggle Styling */
 :root[data-theme="heineken"] .theme-toggle {
-    background: var(--accent-500);
-    color: white;
-    border-color: var(--accent-600);
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(255, 153, 0, 0.3);
+    background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
+    color: var(--primary-800);
+    border-color: var(--accent-500);
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(255, 153, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 :root[data-theme="heineken"] .theme-toggle:hover {
-    background: var(--accent-600);
-    color: white;
-    border-color: var(--accent-700);
+    background: linear-gradient(135deg, var(--accent-600), var(--accent-700));
+    color: var(--primary-900);
+    border-color: var(--accent-600);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 153, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+:root[data-theme="heineken"] .theme-toggle:active {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 153, 0, 0.4);
 }

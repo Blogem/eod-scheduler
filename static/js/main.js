@@ -39,10 +39,10 @@ class ThemeManager {
     updateToggleButton(button = document.querySelector('.theme-toggle')) {
         if (button) {
             if (this.currentTheme === 'heineken') {
-                button.innerHTML = '🍺 Heineken';
+                button.innerHTML = 'Heineken';
                 button.title = 'Switch to neutral theme';
             } else {
-                button.innerHTML = '🎨 Neutral';
+                button.innerHTML = 'Neutral';
                 button.title = 'Switch to Heineken theme';
             }
         }
