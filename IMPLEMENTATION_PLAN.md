@@ -143,7 +143,6 @@ The implementation is broken down into 10 logical phases, each building upon the
 
    type ScheduleState struct {
        ID                 int       `json:"id" db:"id"`
-       NextPersonIndex    int       `json:"next_person_index" db:"next_person_index"`
        LastGenerationDate time.Time `json:"last_generation_date" db:"last_generation_date"`
    }
    ```

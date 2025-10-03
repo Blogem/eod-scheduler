@@ -229,12 +229,13 @@ func TestScheduleRepository(t *testing.T) {
 		t.Fatalf("Failed to get schedule state: %v", err)
 	}
 
-	if state.NextPersonIndex != 0 {
-		t.Errorf("Expected next person index 0, got %d", state.NextPersonIndex)
+	if state.ID != 1 {
+		t.Errorf("Expected state ID 1, got %d", state.ID)
 	}
 
-	// Test UpdateState
-	state.NextPersonIndex = 1
+	// Test UpdateState - update the generation date
+	newDate := time.Now().AddDate(0, 0, 1)
+	state.LastGenerationDate = newDate
 	err = scheduleRepo.UpdateState(state)
 	if err != nil {
 		t.Fatalf("Failed to update schedule state: %v", err)
@@ -246,7 +247,10 @@ func TestScheduleRepository(t *testing.T) {
 		t.Fatalf("Failed to get updated schedule state: %v", err)
 	}
 
-	if updatedState.NextPersonIndex != 1 {
-		t.Errorf("Expected updated next person index 1, got %d", updatedState.NextPersonIndex)
+	// Compare dates (allowing for minor time differences)
+	expectedDate := newDate.Format("2006-01-02")
+	actualDate := updatedState.LastGenerationDate.Format("2006-01-02")
+	if actualDate != expectedDate {
+		t.Errorf("Expected updated last generation date %s, got %s", expectedDate, actualDate)
 	}
 }

@@ -30,7 +30,6 @@ CREATE TABLE schedule_entries (
 
 CREATE TABLE schedule_state (
     id INTEGER PRIMARY KEY CHECK (id = 1), -- Ensure only one record
-    next_person_index INTEGER DEFAULT 0,
     last_generation_date DATE
 );
 
@@ -51,5 +50,5 @@ INSERT INTO working_hours (day_of_week, start_time, end_time, active) VALUES
 (6, '00:00', '00:00', 0); -- Sunday (inactive)
 
 -- Initialize schedule state
-INSERT INTO schedule_state (id, next_person_index, last_generation_date) VALUES
-(1, 0, date('now'));
+INSERT INTO schedule_state (id, last_generation_date) VALUES
+(1, date('now'));

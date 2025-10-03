@@ -22,7 +22,6 @@ type ScheduleEntry struct {
 // ScheduleState represents the current state of schedule generation
 type ScheduleState struct {
 	ID                 int       `json:"id" db:"id"`
-	NextPersonIndex    int       `json:"next_person_index" db:"next_person_index"`
 	LastGenerationDate time.Time `json:"last_generation_date" db:"last_generation_date"`
 }
 

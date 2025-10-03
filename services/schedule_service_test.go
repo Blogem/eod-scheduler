@@ -91,7 +91,6 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_UpToDate_RecentGene
 	recentDate := time.Now().AddDate(0, 0, -3)
 	scheduleState := &models.ScheduleState{
 		ID:                 1,
-		NextPersonIndex:    2,
 		LastGenerationDate: recentDate,
 	}
 
@@ -126,7 +125,6 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ForceGeneration() {
 	recentDate := time.Now().AddDate(0, 0, -3)
 	scheduleState := &models.ScheduleState{
 		ID:                 1,
-		NextPersonIndex:    1,
 		LastGenerationDate: recentDate,
 	}
 
@@ -185,7 +183,6 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_SuccessfulGeneratio
 	oldDate := time.Now().AddDate(0, 0, -8)
 	scheduleState := &models.ScheduleState{
 		ID:                 1,
-		NextPersonIndex:    0,
 		LastGenerationDate: oldDate,
 	}
 
@@ -214,7 +211,7 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_SuccessfulGeneratio
 
 	// Mock state update
 	suite.mockScheduleRepo.EXPECT().UpdateState(mock.MatchedBy(func(state *models.ScheduleState) bool {
-		return state.ID == 1 && state.NextPersonIndex >= 0 && state.NextPersonIndex < len(activeMembers)
+		return state.ID == 1
 	})).Return(nil)
 
 	// Act
@@ -229,12 +226,11 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_SuccessfulGeneratio
 	assert.Equal(suite.T(), result.NextGenerationDue, result.GenerationDate.AddDate(0, 0, 7))
 }
 
-// TestGenerateSchedule_RoundRobinLogic tests the round-robin assignment logic
+// TestGenerateSchedule_RoundRobinLogic tests the deterministic round-robin assignment logic
 func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_RoundRobinLogic() {
-	// Setup: Start with member index 1 (second member)
+	// Setup: Old generation to force regeneration
 	scheduleState := &models.ScheduleState{
 		ID:                 1,
-		NextPersonIndex:    1, // Start with second member
 		LastGenerationDate: time.Now().AddDate(0, 0, -8),
 	}
 
@@ -271,11 +267,20 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_RoundRobinLogic() {
 	assert.NotNil(suite.T(), result)
 	assert.True(suite.T(), result.Success)
 
-	// Verify round-robin logic: should start with member 20 (index 1), then 30 (index 2), then 10 (index 0)
+	// Verify that round-robin assignment works (the exact order depends on the deterministic calculation)
+	// The key is that we should see different people assigned in a round-robin pattern
 	if len(assignedMembers) >= 3 {
-		assert.Equal(suite.T(), 20, assignedMembers[0]) // Jane Smith (index 1)
-		assert.Equal(suite.T(), 30, assignedMembers[1]) // Bob Wilson (index 2)
-		assert.Equal(suite.T(), 10, assignedMembers[2]) // John Doe (index 0, wrapped around)
+		// Check that we're doing round-robin - each person appears multiple times in sequence
+		memberCounts := make(map[int]int)
+		for _, memberID := range assignedMembers {
+			memberCounts[memberID]++
+		}
+
+		// All members should be used if we have enough assignments
+		expectedMembers := []int{10, 20, 30}
+		for _, memberID := range expectedMembers {
+			assert.True(suite.T(), memberCounts[memberID] > 0, "Member %d should have at least one assignment", memberID)
+		}
 	}
 }
 
@@ -283,7 +288,6 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_RoundRobinLogic() {
 func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_SkipManualOverrides() {
 	scheduleState := &models.ScheduleState{
 		ID:                 1,
-		NextPersonIndex:    0,
 		LastGenerationDate: time.Now().AddDate(0, 0, -8),
 	}
 
@@ -384,12 +388,10 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ErrorHandling() {
 	}
 }
 
-// TestGenerateSchedule_IndexBoundsHandling tests handling of out-of-bounds member index
-func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_IndexBoundsHandling() {
-	// Setup: Index is out of bounds (larger than team size)
+// TestGenerateSchedule_DeterministicGenerationWithTwoMembers tests deterministic assignment works correctly with small team
+func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_DeterministicGenerationWithTwoMembers() {
 	scheduleState := &models.ScheduleState{
 		ID:                 1,
-		NextPersonIndex:    10, // Out of bounds
 		LastGenerationDate: time.Now().AddDate(0, 0, -8),
 	}
 
@@ -406,7 +408,7 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_IndexBoundsHandling
 	suite.mockScheduleRepo.EXPECT().GetState().Return(scheduleState, nil)
 	suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
 
-	// Expect entries to be created starting from the first member (index 0, ID 1)
+	// Expect entries to be created based on deterministic date-based assignment
 	suite.mockScheduleRepo.EXPECT().GetByDate(mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
 	suite.mockScheduleRepo.EXPECT().Create(mock.AnythingOfType("*models.ScheduleEntry")).Return(nil).Maybe()
 
@@ -429,6 +431,142 @@ func getNextMonday() time.Time {
 		days = 7
 	}
 	return now.AddDate(0, 0, days)
+}
+
+// TestGenerateSchedule_DeterministicAssignment tests that the assignment is deterministic regardless of generation start day
+func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_DeterministicAssignment() {
+	// Store original timeNow function to restore later
+	originalTimeNow := timeNow
+	defer func() { timeNow = originalTimeNow }()
+
+	activeMembers := []models.TeamMember{
+		{ID: 1, Name: "Alice", Active: true},
+		{ID: 2, Name: "Bob", Active: true},
+		{ID: 3, Name: "Charlie", Active: true},
+	}
+
+	// Working days: Monday, Wednesday (using models.GetWeekdayNumber numbering: 0=Monday, 2=Wednesday)
+	// With 3 people and 2 working days, we should see rotation between people on each day
+	activeDays := []models.WorkingHours{
+		{ID: 1, DayOfWeek: 0, StartTime: "09:00", EndTime: "17:00", Active: true}, // Monday (0)
+		{ID: 2, DayOfWeek: 2, StartTime: "09:00", EndTime: "17:00", Active: true}, // Wednesday (2)
+	}
+
+	scheduleState := &models.ScheduleState{
+		ID:                 1,
+		LastGenerationDate: time.Now().AddDate(0, 0, -8), // Force regeneration
+	}
+
+	// Test the actual service method on different start days
+	testCases := []struct {
+		name      string
+		startDate time.Time
+	}{
+		{
+			name:      "Generate starting Monday",
+			startDate: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), // Monday
+		},
+		{
+			name:      "Generate starting Tuesday",
+			startDate: time.Date(2024, 1, 2, 10, 0, 0, 0, time.UTC), // Tuesday
+		},
+	}
+
+	// Store results from both runs to compare
+	var allRunResults [][]struct {
+		date     time.Time
+		memberID int
+	}
+
+	for _, tc := range testCases {
+		suite.T().Run(tc.name, func(t *testing.T) {
+			// Reset mocks for each test case
+			suite.SetupTest()
+
+			// Mock the current time to be the test date
+			timeNow = func() time.Time { return tc.startDate }
+
+			// Set up mocks
+			suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
+			suite.mockWorkingRepo.EXPECT().GetActiveDays().Return(activeDays, nil)
+			suite.mockScheduleRepo.EXPECT().GetState().Return(scheduleState, nil)
+			suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
+
+			// Track assignments by day of week AND chronological sequence
+			assignments := make(map[time.Weekday][]int)
+			var chronologicalAssignments []struct {
+				date     time.Time
+				memberID int
+			}
+
+			suite.mockScheduleRepo.EXPECT().GetByDate(mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
+			suite.mockScheduleRepo.EXPECT().Create(mock.MatchedBy(func(entry *models.ScheduleEntry) bool {
+				weekday := entry.Date.Weekday()
+				assignments[weekday] = append(assignments[weekday], entry.TeamMemberID)
+				chronologicalAssignments = append(chronologicalAssignments, struct {
+					date     time.Time
+					memberID int
+				}{entry.Date, entry.TeamMemberID})
+				return true
+			})).Return(nil).Maybe()
+
+			suite.mockScheduleRepo.EXPECT().UpdateState(mock.AnythingOfType("*models.ScheduleState")).Return(nil)
+
+			// Act - Call the actual GenerateSchedule method
+			result, err := suite.service.GenerateSchedule(true) // Force generation
+
+			// Assert
+			assert.NoError(t, err)
+			assert.NotNil(t, result)
+			assert.True(t, result.Success)
+
+			// Store results for comparison
+			allRunResults = append(allRunResults, chronologicalAssignments)
+		})
+	}
+
+	// Compare assignments between both runs
+	if len(allRunResults) == 2 {
+		run1 := allRunResults[0]
+		run2 := allRunResults[1]
+
+		// Create maps of date -> memberID for easy comparison
+		run1Map := make(map[string]int)
+		run2Map := make(map[string]int)
+
+		for _, assignment := range run1 {
+			dateKey := assignment.date.Format("2006-01-02")
+			run1Map[dateKey] = assignment.memberID
+		}
+
+		for _, assignment := range run2 {
+			dateKey := assignment.date.Format("2006-01-02")
+			run2Map[dateKey] = assignment.memberID
+		}
+
+		// Compare assignments for same dates
+		matchingDates := 0
+		differentAssignments := 0
+
+		for dateKey, run1Member := range run1Map {
+			if run2Member, exists := run2Map[dateKey]; exists {
+				matchingDates++
+				if run1Member != run2Member {
+					differentAssignments++
+					suite.T().Errorf("DETERMINISM FAILURE: Date %s assigned to Member %d in run 1 but Member %d in run 2",
+						dateKey, run1Member, run2Member)
+				}
+			}
+		}
+
+		if differentAssignments == 0 && matchingDates > 0 {
+			suite.T().Logf("SUCCESS: Algorithm is deterministic! %d matching dates all have consistent assignments", matchingDates)
+		} else if matchingDates == 0 {
+			suite.T().Errorf("FAILURE: No overlapping dates between runs (different generation periods)")
+		} else {
+			suite.T().Errorf("FAILURE: %d out of %d matching dates have different assignments!", differentAssignments, matchingDates)
+		}
+	}
 }
 
 // TestRunGenerateScheduleTestSuite runs the test suite

@@ -9,6 +9,10 @@ import (
 	"github.com/blogem/eod-scheduler/repositories"
 )
 
+var timeNow = func() time.Time {
+	return time.Now()
+}
+
 // ScheduleService interface defines schedule management business logic
 type ScheduleService interface {
 	GetScheduleByDateRange(from, to time.Time) ([]models.ScheduleEntry, error)
@@ -111,7 +115,7 @@ func (s *scheduleService) GetWeeklySchedule(startDate time.Time) (*models.WeekVi
 
 	// Group entries by day
 	dayMap := make(map[string][]models.ScheduleEntry)
-	today := time.Now().Format("2006-01-02")
+	today := timeNow().Format("2006-01-02")
 
 	for _, entry := range entries {
 		dateStr := entry.GetFormattedDate()
@@ -155,118 +159,188 @@ func (s *scheduleService) GenerateSchedule(force bool) (*models.GenerationResult
 	}
 
 	// Check if regeneration is needed
-	if !force {
-		lastGen := state.LastGenerationDate
-		daysSinceLastGen := int(time.Since(lastGen).Hours() / 24)
-		if daysSinceLastGen < 7 { // Don't regenerate more than once per week unless forced
-			return &models.GenerationResult{
-				Success:           true,
-				Message:           "Schedule is up to date",
-				GenerationDate:    lastGen,
-				NextGenerationDue: lastGen.AddDate(0, 0, 7),
-			}, nil
-		}
+	if !force && s.isScheduleUpToDate(state) {
+		return s.createUpToDateResult(state), nil
 	}
 
-	// Get active team members
-	activeMembers, err := s.teamRepo.GetActiveMembers()
+	// Get required data for generation
+	activeMembers, activeDays, err := s.getGenerationData()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get active team members: %w", err)
+		return nil, err
 	}
 
-	// Get active working days
-	activeDays, err := s.workingHoursRepo.GetActiveDays()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get active working days: %w", err)
-	}
-
-	// Delete existing future entries (non-overrides)
-	today := time.Now()
-	futureEnd := today.AddDate(0, 3, 0) // 3 months ahead
-
-	// We need to be careful here - only delete non-override entries
-	existingEntries, err := s.scheduleRepo.GetByDateRange(today, futureEnd)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get existing entries: %w", err)
-	}
-
-	// Delete non-override entries
-	for _, entry := range existingEntries {
-		if !entry.IsManualOverride {
-			if err := s.scheduleRepo.Delete(entry.ID); err != nil {
-				return nil, fmt.Errorf("failed to delete existing entry: %w", err)
-			}
-		}
+	// Clean up existing entries and prepare for new generation
+	if err := s.cleanupExistingEntries(); err != nil {
+		return nil, err
 	}
 
 	// Generate new schedule entries
-	entriesCreated := 0
-	currentMemberIndex := state.NextPersonIndex
-
-	// Ensure the index is within bounds
-	if currentMemberIndex >= len(activeMembers) {
-		currentMemberIndex = 0
+	entriesCreated, err := s.generateScheduleEntries(activeMembers, activeDays)
+	if err != nil {
+		return nil, err
 	}
 
-	// Generate entries for each day in the next 3 months
-	for date := today; date.Before(futureEnd); date = date.AddDate(0, 0, 1) {
-		weekday := models.GetWeekdayNumber(date)
+	// Update state and return result
+	return s.finalizeGeneration(state, entriesCreated)
+}
 
-		// Check if this is a working day
-		var workingHours *models.WorkingHours
-		for _, wh := range activeDays {
-			if wh.DayOfWeek == weekday {
-				workingHours = &wh
-				break
+// isScheduleUpToDate checks if the schedule was generated recently
+func (s *scheduleService) isScheduleUpToDate(state *models.ScheduleState) bool {
+	daysSinceLastGen := int(time.Since(state.LastGenerationDate).Hours() / 24)
+	return daysSinceLastGen < 7 // Don't regenerate more than once per week unless forced
+}
+
+// createUpToDateResult creates a result indicating the schedule is current
+func (s *scheduleService) createUpToDateResult(state *models.ScheduleState) *models.GenerationResult {
+	return &models.GenerationResult{
+		Success:           true,
+		Message:           "Schedule is up to date",
+		GenerationDate:    state.LastGenerationDate,
+		NextGenerationDue: state.LastGenerationDate.AddDate(0, 0, 7),
+	}
+}
+
+// getGenerationData retrieves active members and working days needed for generation
+func (s *scheduleService) getGenerationData() ([]models.TeamMember, []models.WorkingHours, error) {
+	activeMembers, err := s.teamRepo.GetActiveMembers()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get active team members: %w", err)
+	}
+
+	activeDays, err := s.workingHoursRepo.GetActiveDays()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get active working days: %w", err)
+	}
+
+	return activeMembers, activeDays, nil
+}
+
+// cleanupExistingEntries removes non-override entries from the future period
+func (s *scheduleService) cleanupExistingEntries() error {
+	today := timeNow()
+	futureEnd := today.AddDate(0, 3, 0) // 3 months ahead
+
+	existingEntries, err := s.scheduleRepo.GetByDateRange(today, futureEnd)
+	if err != nil {
+		return fmt.Errorf("failed to get existing entries: %w", err)
+	}
+
+	// Delete only non-override entries to preserve manual changes
+	for _, entry := range existingEntries {
+		if !entry.IsManualOverride {
+			if err := s.scheduleRepo.Delete(entry.ID); err != nil {
+				return fmt.Errorf("failed to delete existing entry: %w", err)
 			}
 		}
+	}
 
-		// Skip non-working days
-		if workingHours == nil {
-			continue
-		}
+	return nil
+}
 
-		// Check if there's already a manual override for this day
-		existingForDay, err := s.scheduleRepo.GetByDate(date)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check existing entries for date: %w", err)
-		}
+// generateScheduleEntries creates new schedule entries using deterministic assignment
+func (s *scheduleService) generateScheduleEntries(activeMembers []models.TeamMember, activeDays []models.WorkingHours) (int, error) {
+	workingDates, err := s.collectWorkingDates(activeDays)
+	if err != nil {
+		return 0, err
+	}
 
-		hasOverride := false
-		for _, entry := range existingForDay {
-			if entry.IsManualOverride {
-				hasOverride = true
-				break
-			}
-		}
-
-		// Skip if there's already a manual override
-		if hasOverride {
-			continue
-		}
-
-		// Create schedule entry
-		entry := &models.ScheduleEntry{
-			Date:             date,
-			TeamMemberID:     activeMembers[currentMemberIndex].ID,
-			StartTime:        workingHours.StartTime,
-			EndTime:          workingHours.EndTime,
-			IsManualOverride: false,
-		}
+	entriesCreated := 0
+	for _, workingDate := range workingDates {
+		entry := s.createScheduleEntry(workingDate, activeMembers)
 
 		if err := s.scheduleRepo.Create(entry); err != nil {
-			return nil, fmt.Errorf("failed to create schedule entry: %w", err)
+			return 0, fmt.Errorf("failed to create schedule entry: %w", err)
 		}
 
 		entriesCreated++
-
-		// Move to next team member (round-robin)
-		currentMemberIndex = (currentMemberIndex + 1) % len(activeMembers)
 	}
 
+	return entriesCreated, nil
+}
+
+// WorkingDate represents a date with its associated working hours
+type WorkingDate struct {
+	Date         time.Time
+	WorkingHours models.WorkingHours
+}
+
+// collectWorkingDates finds all working dates in the generation period that don't have overrides
+func (s *scheduleService) collectWorkingDates(activeDays []models.WorkingHours) ([]WorkingDate, error) {
+	today := timeNow()
+	futureEnd := today.AddDate(0, 3, 0) // 3 months ahead
+	var workingDates []WorkingDate
+
+	for date := today; date.Before(futureEnd); date = date.AddDate(0, 0, 1) {
+		weekday := models.GetWeekdayNumber(date)
+
+		// Find working hours for this day of week
+		workingHours := s.findWorkingHoursForDay(activeDays, weekday)
+		if workingHours == nil {
+			continue // Skip non-working days
+		}
+
+		// Skip dates that already have manual overrides
+		if hasOverride, err := s.hasManualOverride(date); err != nil {
+			return nil, fmt.Errorf("failed to check existing entries for date: %w", err)
+		} else if hasOverride {
+			continue
+		}
+
+		workingDates = append(workingDates, WorkingDate{
+			Date:         date,
+			WorkingHours: *workingHours,
+		})
+	}
+
+	return workingDates, nil
+}
+
+// findWorkingHoursForDay finds the working hours configuration for a specific weekday
+func (s *scheduleService) findWorkingHoursForDay(activeDays []models.WorkingHours, weekday int) *models.WorkingHours {
+	for _, wh := range activeDays {
+		if wh.DayOfWeek == weekday {
+			return &wh
+		}
+	}
+	return nil
+}
+
+// hasManualOverride checks if a date already has a manual override entry
+func (s *scheduleService) hasManualOverride(date time.Time) (bool, error) {
+	existingForDay, err := s.scheduleRepo.GetByDate(date)
+	if err != nil {
+		return false, err
+	}
+
+	for _, entry := range existingForDay {
+		if entry.IsManualOverride {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// createScheduleEntry creates a schedule entry with deterministic team member assignment
+func (s *scheduleService) createScheduleEntry(workingDate WorkingDate, activeMembers []models.TeamMember) *models.ScheduleEntry {
+	// Calculate deterministic assignment based on date
+	epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	daysSinceEpoch := int(workingDate.Date.Sub(epoch).Hours() / 24)
+	memberIndex := daysSinceEpoch % len(activeMembers)
+
+	return &models.ScheduleEntry{
+		Date:             workingDate.Date,
+		TeamMemberID:     activeMembers[memberIndex].ID,
+		StartTime:        workingDate.WorkingHours.StartTime,
+		EndTime:          workingDate.WorkingHours.EndTime,
+		IsManualOverride: false,
+	}
+}
+
+// finalizeGeneration updates the state and creates the final result
+func (s *scheduleService) finalizeGeneration(state *models.ScheduleState, entriesCreated int) (*models.GenerationResult, error) {
 	// Update state
-	state.NextPersonIndex = currentMemberIndex
-	state.LastGenerationDate = time.Now()
+	state.LastGenerationDate = timeNow()
 	if err := s.scheduleRepo.UpdateState(state); err != nil {
 		return nil, fmt.Errorf("failed to update schedule state: %w", err)
 	}
@@ -469,7 +543,7 @@ func (s *scheduleService) ValidateScheduleGeneration() error {
 
 // GetUpcomingEntries returns schedule entries for the next N days
 func (s *scheduleService) GetUpcomingEntries(days int) ([]models.ScheduleEntry, error) {
-	from := time.Now()
+	from := timeNow()
 	to := from.AddDate(0, 0, days)
 
 	return s.scheduleRepo.GetByDateRange(from, to)

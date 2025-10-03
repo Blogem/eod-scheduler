@@ -236,7 +236,7 @@ func (r *scheduleRepository) DeleteByDateRange(from, to time.Time) error {
 // GetState retrieves the current schedule state
 func (r *scheduleRepository) GetState() (*models.ScheduleState, error) {
 	query := `
-		SELECT id, next_person_index, last_generation_date 
+		SELECT id, last_generation_date 
 		FROM schedule_state 
 		WHERE id = 1
 	`
@@ -244,7 +244,6 @@ func (r *scheduleRepository) GetState() (*models.ScheduleState, error) {
 	var state models.ScheduleState
 	err := r.db.QueryRow(query).Scan(
 		&state.ID,
-		&state.NextPersonIndex,
 		&state.LastGenerationDate,
 	)
 
@@ -252,7 +251,6 @@ func (r *scheduleRepository) GetState() (*models.ScheduleState, error) {
 		// Initialize default state if not exists
 		defaultState := &models.ScheduleState{
 			ID:                 1,
-			NextPersonIndex:    0,
 			LastGenerationDate: time.Now(),
 		}
 		if err := r.UpdateState(defaultState); err != nil {
@@ -270,11 +268,11 @@ func (r *scheduleRepository) GetState() (*models.ScheduleState, error) {
 // UpdateState updates the schedule state
 func (r *scheduleRepository) UpdateState(state *models.ScheduleState) error {
 	query := `
-		INSERT OR REPLACE INTO schedule_state (id, next_person_index, last_generation_date) 
-		VALUES (1, ?, ?)
+		INSERT OR REPLACE INTO schedule_state (id, last_generation_date) 
+		VALUES (1, ?)
 	`
 
-	_, err := r.db.Exec(query, state.NextPersonIndex, state.LastGenerationDate.Format("2006-01-02"))
+	_, err := r.db.Exec(query, state.LastGenerationDate.Format("2006-01-02"))
 	if err != nil {
 		return fmt.Errorf("failed to update schedule state: %w", err)
 	}
