@@ -39,12 +39,14 @@ func (c *ScheduleController) Index(w http.ResponseWriter, r *http.Request) {
 		Error       string
 		Success     string
 		Schedule    *models.WeekView
+		CurrentURL  string
 	}{
 		Title:       "Schedule",
 		CurrentPage: "schedule",
 		Error:       r.URL.Query().Get("error"),
 		Success:     r.URL.Query().Get("success"),
 		Schedule:    weeklySchedule,
+		CurrentURL:  r.URL.Path,
 	}
 
 	renderTemplate(w, "schedule", "templates/schedule.html", templateData)
@@ -72,12 +74,14 @@ func (c *ScheduleController) Week(w http.ResponseWriter, r *http.Request) {
 		Error       string
 		Success     string
 		Schedule    *models.WeekView
+		CurrentURL  string
 	}{
 		Title:       "Schedule - Week of " + models.FormatDate(date),
 		CurrentPage: "schedule",
 		Error:       "",
 		Success:     "",
 		Schedule:    weeklySchedule,
+		CurrentURL:  r.URL.Path,
 	}
 
 	renderTemplate(w, "schedule_week", "templates/schedule.html", templateData)
