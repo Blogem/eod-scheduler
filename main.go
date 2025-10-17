@@ -80,13 +80,16 @@ func setupRouter(ctrl *controllers.Controllers, auth authenticator.Provider) (*c
 	r.Use(middleware.Timeout(60 * time.Second)) // 60 second timeout for OAuth callbacks
 	r.Use(middleware.Compress(5))
 
+	// Determine if we should use secure cookies (HTTPS)
+	useSecureCookies := os.Getenv("USE_HTTPS") == "true"
+
 	// Session middleware
 	sessionHandler, err := session.Sessioner(session.Options{
 		Provider:       "memory",
 		ProviderConfig: "",
 		CookieName:     "eod_session",
-		Secure:         false, // TODO: Set to true in production with HTTPS
-		Gclifetime:     3600,  // Session lifetime in seconds
+		Secure:         useSecureCookies, // Set to true when USE_HTTPS=true (production)
+		Gclifetime:     3600,             // Session lifetime in seconds
 		Maxlifetime:    3600,
 	})
 	if err != nil {
