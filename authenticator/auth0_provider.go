@@ -19,18 +19,37 @@ type Auth0Provider struct {
 func NewAuth0Provider() (Provider, error) {
 	ctx := context.Background()
 
+	// Validate required environment variables
+	domain := os.Getenv("AUTH0_DOMAIN")
+	clientID := os.Getenv("AUTH0_CLIENT_ID")
+	clientSecret := os.Getenv("AUTH0_CLIENT_SECRET")
+	callbackURL := os.Getenv("AUTH0_CALLBACK_URL")
+
+	if domain == "" {
+		return nil, errors.New("AUTH0_DOMAIN environment variable is required")
+	}
+	if clientID == "" {
+		return nil, errors.New("AUTH0_CLIENT_ID environment variable is required")
+	}
+	if clientSecret == "" {
+		return nil, errors.New("AUTH0_CLIENT_SECRET environment variable is required")
+	}
+	if callbackURL == "" {
+		return nil, errors.New("AUTH0_CALLBACK_URL environment variable is required")
+	}
+
 	provider, err := oidc.NewProvider(
 		ctx,
-		"https://"+os.Getenv("AUTH0_DOMAIN")+"/",
+		"https://"+domain+"/",
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	conf := oauth2.Config{
-		ClientID:     os.Getenv("AUTH0_CLIENT_ID"), // TODO: required env var
-		ClientSecret: os.Getenv("AUTH0_CLIENT_SECRET"),
-		RedirectURL:  os.Getenv("AUTH0_CALLBACK_URL"),
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURL:  callbackURL,
 		Endpoint:     provider.Endpoint(),
 		Scopes:       []string{oidc.ScopeOpenID, "profile"},
 	}
