@@ -21,6 +21,11 @@
                         <li><a href="/schedule" {{if eq .CurrentPage "schedule" }}class="active" {{end}}>Schedule</a>
                         </li>
                         <li><button class="theme-toggle" aria-label="Toggle theme">Switch Theme</button></li>
+                        {{if not .User}}
+                        <li><a href="/login">Login</a></li>
+                        {{else}}
+                        <li><span style="color: var(--text-secondary); font-size: 0.875rem;">{{.User}}</span></li>
+                        {{end}}
                     </ul>
                 </nav>
             </div>

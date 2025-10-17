@@ -44,6 +44,7 @@ func renderTemplateWithStatus(w http.ResponseWriter, statusCode int, templateNam
 
 // Controllers holds all controller instances
 type Controllers struct {
+	Auth         *AuthController
 	Dashboard    *DashboardController
 	Team         *TeamController
 	WorkingHours *WorkingHoursController
@@ -53,6 +54,7 @@ type Controllers struct {
 // NewControllers creates and initializes all controller instances
 func NewControllers(services *services.Services) *Controllers {
 	return &Controllers{
+		Auth:         NewAuthController(),
 		Dashboard:    NewDashboardController(services),
 		Team:         NewTeamController(services),
 		WorkingHours: NewWorkingHoursController(services),

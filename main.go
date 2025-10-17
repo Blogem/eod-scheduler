@@ -5,7 +5,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/joho/godotenv"
+
+	"gitea.com/go-chi/session"
+	"github.com/blogem/eod-scheduler/authenticator"
 	"github.com/blogem/eod-scheduler/controllers"
 	"github.com/blogem/eod-scheduler/database"
 	"github.com/blogem/eod-scheduler/repositories"
@@ -15,6 +20,12 @@ import (
 )
 
 func main() {
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Failed to load the env vars: %v", err)
+	}
+
 	// Initialize database
 	dbPath := "eod_scheduler.db"
 	if err := database.InitializeDatabase(dbPath); err != nil {
@@ -34,8 +45,17 @@ func main() {
 	// Initialize controllers
 	ctrl := controllers.NewControllers(srvs)
 
+	// Initialize authenticator
+	auth, err := authenticator.New()
+	if err != nil {
+		log.Fatalf("Failed to initialize authenticator: %v", err)
+	}
+
 	// Set up router
-	r := setupRouter(ctrl)
+	r, err := setupRouter(ctrl, auth)
+	if err != nil {
+		log.Fatalf("Failed to setup router: %v", err)
+	}
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")
@@ -51,14 +71,28 @@ func main() {
 }
 
 // setupRouter configures all routes
-func setupRouter(ctrl *controllers.Controllers) *chi.Mux {
+func setupRouter(ctrl *controllers.Controllers, auth *authenticator.Authenticator) (*chi.Mux, error) {
 	r := chi.NewRouter()
 
 	// Middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(30)) // 30 second timeout
+	r.Use(middleware.Timeout(60 * time.Second)) // 60 second timeout for OAuth callbacks
 	r.Use(middleware.Compress(5))
+
+	// Session middleware
+	sessionHandler, err := session.Sessioner(session.Options{
+		Provider:       "memory",
+		ProviderConfig: "",
+		CookieName:     "eod_session",
+		Secure:         false, // TODO: Set to true in production with HTTPS
+		Gclifetime:     3600,  // Session lifetime in seconds
+		Maxlifetime:    3600,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize session: %w", err)
+	}
+	r.Use(sessionHandler)
 
 	// Add debugging middleware
 	r.Use(func(next http.Handler) http.Handler {
@@ -73,6 +107,10 @@ func setupRouter(ctrl *controllers.Controllers) *chi.Mux {
 
 	// Dashboard routes
 	r.Get("/", ctrl.Dashboard.Index)
+
+	// Authentication routes
+	r.Get("/login", ctrl.Auth.Login(auth))
+	r.Get("/callback", ctrl.Auth.Callback(auth))
 
 	// Team management routes
 	r.Route("/team", func(r chi.Router) {
@@ -120,5 +158,5 @@ func setupRouter(ctrl *controllers.Controllers) *chi.Mux {
 		fmt.Fprintf(w, "<h1>Test Route Works!</h1><p>Server is responding correctly.</p>")
 	})
 
-	return r
+	return r, nil
 }
