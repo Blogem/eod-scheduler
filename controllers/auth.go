@@ -16,7 +16,7 @@ func NewAuthController() *AuthController {
 }
 
 // Login initiates the authentication process
-func (ac *AuthController) Login(auth *authenticator.Authenticator) http.HandlerFunc {
+func (ac *AuthController) Login(auth authenticator.Provider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Generate random state
 		state, err := generateRandomState()
@@ -29,13 +29,13 @@ func (ac *AuthController) Login(auth *authenticator.Authenticator) http.HandlerF
 		sess := session.GetSession(r)
 		sess.Set("state", state)
 
-		// Redirect to Auth0 login page
-		http.Redirect(w, r, auth.AuthCodeURL(state), http.StatusTemporaryRedirect)
+		// Redirect to OAuth provider login page
+		http.Redirect(w, r, auth.GetAuthURL(state), http.StatusTemporaryRedirect)
 	}
 }
 
-// Callback handles the callback from Auth0
-func (ac *AuthController) Callback(auth *authenticator.Authenticator) http.HandlerFunc {
+// Callback handles the callback from the OAuth provider
+func (ac *AuthController) Callback(auth authenticator.Provider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get session
 		sess := session.GetSession(r)
@@ -53,39 +53,29 @@ func (ac *AuthController) Callback(auth *authenticator.Authenticator) http.Handl
 		}
 
 		// Exchange the code for a token
-		token, err := auth.Exchange(r.Context(), r.URL.Query().Get("code"))
+		token, err := auth.ExchangeCode(r.Context(), r.URL.Query().Get("code"))
 		if err != nil {
-			http.Error(w, "Failed to exchange authorization code for a token: "+err.Error(), http.StatusUnauthorized)
+			http.Error(w, "Failed to exchange authorization code: "+err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		// Verify the ID token
-		idToken, err := auth.VerifyIDToken(r.Context(), token)
+		// Get user claims
+		claims, err := auth.GetClaims(r.Context(), token)
 		if err != nil {
-			http.Error(w, "Failed to verify ID Token: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Failed to get user claims: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Extract profile information
-		var profile map[string]interface{}
-		if err := idToken.Claims(&profile); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		// Store the user session
+		sess.Set("user_id", claims["sub"].(string))
 
-		// Store the user session with nickname
-		sess.Set("user_id", profile["sub"].(string))
-
-		// Try to get nickname, fallback to name, then email, then sub
+		// Try to get display name from claims
 		var displayName string
-		if nickname, ok := profile["nickname"].(string); ok && nickname != "" {
-			displayName = nickname
-		} else if name, ok := profile["name"].(string); ok && name != "" {
-			displayName = name
-		} else if email, ok := profile["email"].(string); ok && email != "" {
-			displayName = email
-		} else {
-			displayName = profile["sub"].(string)
+		for _, key := range []string{"nickname", "name", "email", "sub"} {
+			if val, ok := claims[key].(string); ok && val != "" {
+				displayName = val
+				break
+			}
 		}
 		sess.Set("user_nickname", displayName)
 

@@ -1,58 +1,32 @@
-// platform/authenticator/auth.go
-
 package authenticator
 
 import (
 	"context"
-	"errors"
-	"os"
-
-	"github.com/coreos/go-oidc/v3/oidc"
-	"golang.org/x/oauth2"
 )
 
-// TODO: provide our own types for oidc.Provider and oauth2.Config to avoid leaking
-// implementation details.
-// Authenticator is used to authenticate our users.
-type Authenticator struct {
-	*oidc.Provider
-	oauth2.Config
+// Config holds OAuth provider configuration
+type Config struct {
+	ProviderURL  string
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+	Scopes       []string
 }
 
-// New instantiates the *Authenticator.
-func New() (*Authenticator, error) {
-	provider, err := oidc.NewProvider(
-		context.Background(),
-		"https://"+os.Getenv("AUTH0_DOMAIN")+"/",
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	conf := oauth2.Config{
-		ClientID:     os.Getenv("AUTH0_CLIENT_ID"),
-		ClientSecret: os.Getenv("AUTH0_CLIENT_SECRET"),
-		RedirectURL:  os.Getenv("AUTH0_CALLBACK_URL"),
-		Endpoint:     provider.Endpoint(),
-		Scopes:       []string{oidc.ScopeOpenID, "profile"},
-	}
-
-	return &Authenticator{
-		Provider: provider,
-		Config:   conf,
-	}, nil
+// Token represents an authentication token
+type Token struct {
+	AccessToken  string
+	RefreshToken string
+	IDToken      string
+	Expiry       int64
 }
 
-// VerifyIDToken verifies that an *oauth2.Token is a valid *oidc.IDToken.
-func (a *Authenticator) VerifyIDToken(ctx context.Context, token *oauth2.Token) (*oidc.IDToken, error) {
-	rawIDToken, ok := token.Extra("id_token").(string)
-	if !ok {
-		return nil, errors.New("no id_token field in oauth2 token")
-	}
+// Claims represents user claims from the ID token
+type Claims map[string]interface{}
 
-	oidcConfig := &oidc.Config{
-		ClientID: a.ClientID,
-	}
-
-	return a.Verifier(oidcConfig).Verify(ctx, rawIDToken)
+// Provider interface abstracts OAuth provider operations
+type Provider interface {
+	GetAuthURL(state string) string
+	ExchangeCode(ctx context.Context, code string) (*Token, error)
+	GetClaims(ctx context.Context, token *Token) (Claims, error)
 }

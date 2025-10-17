@@ -45,10 +45,10 @@ func main() {
 	// Initialize controllers
 	ctrl := controllers.NewControllers(srvs)
 
-	// Initialize authenticator
-	auth, err := authenticator.New()
+	// Initialize Auth0 provider
+	auth, err := authenticator.NewAuth0Provider()
 	if err != nil {
-		log.Fatalf("Failed to initialize authenticator: %v", err)
+		log.Fatalf("Failed to initialize Auth0 provider: %v", err)
 	}
 
 	// Set up router
@@ -71,7 +71,7 @@ func main() {
 }
 
 // setupRouter configures all routes
-func setupRouter(ctrl *controllers.Controllers, auth *authenticator.Authenticator) (*chi.Mux, error) {
+func setupRouter(ctrl *controllers.Controllers, auth authenticator.Provider) (*chi.Mux, error) {
 	r := chi.NewRouter()
 
 	// Middleware
