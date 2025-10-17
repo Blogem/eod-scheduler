@@ -73,8 +73,21 @@ func (ac *AuthController) Callback(auth *authenticator.Authenticator) http.Handl
 			return
 		}
 
-		// Store the user session
-		sess.Set("user", profile["sub"].(string))
+		// Store the user session with nickname
+		sess.Set("user_id", profile["sub"].(string))
+
+		// Try to get nickname, fallback to name, then email, then sub
+		var displayName string
+		if nickname, ok := profile["nickname"].(string); ok && nickname != "" {
+			displayName = nickname
+		} else if name, ok := profile["name"].(string); ok && name != "" {
+			displayName = name
+		} else if email, ok := profile["email"].(string); ok && email != "" {
+			displayName = email
+		} else {
+			displayName = profile["sub"].(string)
+		}
+		sess.Set("user_nickname", displayName)
 
 		// Clear the state from session
 		sess.Delete("state")

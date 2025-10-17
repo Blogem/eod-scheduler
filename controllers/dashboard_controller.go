@@ -3,7 +3,6 @@ package controllers
 import (
 	"net/http"
 
-	"gitea.com/go-chi/session"
 	"github.com/blogem/eod-scheduler/services"
 )
 
@@ -27,13 +26,6 @@ func (c *DashboardController) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user from session
-	sess := session.GetSession(r)
-	var user string
-	if userID := sess.Get("user"); userID != nil {
-		user = userID.(string)
-	}
-
 	templateData := struct {
 		Title       string
 		CurrentPage string
@@ -47,7 +39,7 @@ func (c *DashboardController) Index(w http.ResponseWriter, r *http.Request) {
 		Error:       "",
 		Success:     "",
 		Data:        data,
-		User:        user,
+		User:        getUserNickname(r),
 	}
 
 	renderTemplate(w, "dashboard", "templates/dashboard.html", templateData)

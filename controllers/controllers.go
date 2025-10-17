@@ -4,8 +4,18 @@ import (
 	"html/template"
 	"net/http"
 
+	"gitea.com/go-chi/session"
 	"github.com/blogem/eod-scheduler/services"
 )
+
+// getUserNickname retrieves the user's nickname from the session
+func getUserNickname(r *http.Request) string {
+	sess := session.GetSession(r)
+	if nickname := sess.Get("user_nickname"); nickname != nil {
+		return nickname.(string)
+	}
+	return ""
+}
 
 // renderTemplate creates a template set and renders it with the provided data
 func renderTemplate(w http.ResponseWriter, templateName string, pageTemplate string, data interface{}) error {
