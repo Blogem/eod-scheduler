@@ -110,26 +110,23 @@ func setupRouter(ctrl *controllers.Controllers, auth authenticator.Provider) (*c
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
 	// PUBLIC ROUTES (no authentication required)
-	r.Group(func(r chi.Router) {
-		r.Get("/login", ctrl.Auth.Login(auth))
-		r.Get("/callback", ctrl.Auth.Callback(auth))
-		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprintf(w, `{"status": "healthy", "service": "eod-scheduler"}`)
-		})
-		r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "text/html")
-			fmt.Fprintf(w, "<h1>Test Route Works!</h1><p>Server is responding correctly.</p>")
-		})
+	r.Get("/", ctrl.Dashboard.Index) // Home page - shows landing or dashboard based on auth
+	r.Get("/login", ctrl.Auth.Login(auth))
+	r.Get("/callback", ctrl.Auth.Callback(auth))
+	r.Get("/logout", ctrl.Auth.Logout)
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{"status": "healthy", "service": "eod-scheduler"}`)
+	})
+	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprintf(w, "<h1>Test Route Works!</h1><p>Server is responding correctly.</p>")
 	})
 
 	// PROTECTED ROUTES (authentication required)
 	r.Group(func(r chi.Router) {
 		r.Use(authmiddleware.RequireAuth)
-
-		// Dashboard routes
-		r.Get("/", ctrl.Dashboard.Index)
 
 		// Team management routes
 		r.Route("/team", func(r chi.Router) {

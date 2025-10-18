@@ -25,6 +25,7 @@
                         <li><a href="/login">Login</a></li>
                         {{else}}
                         <li><span style="color: var(--text-secondary); font-size: 0.875rem;">{{.User}}</span></li>
+                        <li><a href="/logout" class="logout-btn">Logout</a></li>
                         {{end}}
                     </ul>
                 </nav>

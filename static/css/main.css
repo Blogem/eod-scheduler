@@ -298,6 +298,18 @@ nav a.active {
     border-color: var(--primary-200);
 }
 
+/* Logout Button Styling */
+nav a.logout-btn {
+    color: var(--error-600);
+    border-color: var(--error-200);
+}
+
+nav a.logout-btn:hover {
+    color: white;
+    background-color: var(--error-600);
+    border-color: var(--error-700);
+}
+
 /* Heineken Theme Specific Styles */
 :root[data-theme="heineken"] header {
     background: var(--primary-600);
@@ -334,6 +346,17 @@ nav a.active {
     background-color: var(--accent-500);
     border-color: var(--accent-600);
     font-weight: 600;
+}
+
+:root[data-theme="heineken"] nav a.logout-btn {
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+:root[data-theme="heineken"] nav a.logout-btn:hover {
+    color: white;
+    background-color: var(--error-600);
+    border-color: var(--error-700);
 }
 
 :root[data-theme="heineken"] .card-featured {

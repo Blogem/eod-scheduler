@@ -94,6 +94,20 @@ func (ac *AuthController) Callback(auth authenticator.Provider) http.HandlerFunc
 	}
 }
 
+// Logout handles user logout
+func (ac *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
+	sess := session.GetSession(r)
+
+	// Clear all session data
+	sess.Delete("user_id")
+	sess.Delete("user_nickname")
+	sess.Delete("state")
+	sess.Delete("redirect_after_login")
+
+	// Redirect to home page (which is now public)
+	http.Redirect(w, r, "/?logged_out=true", http.StatusSeeOther)
+}
+
 // generateRandomState generates a random state value for CSRF protection
 func generateRandomState() (string, error) {
 	b := make([]byte, 32)
