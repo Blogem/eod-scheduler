@@ -10,6 +10,57 @@ import (
 type contextKey string
 
 const UserIDContextKey contextKey = "user_id"
+const userEmailKey contextKey = "user_email"
+
+// GetUserIDFromSession retrieves the user ID from session
+func GetUserIDFromSession(r *http.Request) string {
+	sess := session.GetSession(r)
+	if userID := sess.Get("user_id"); userID != nil {
+		if id, ok := userID.(string); ok {
+			return id
+		}
+	}
+	return ""
+}
+
+// GetUserEmailFromSession retrieves the user email from session
+func GetUserEmailFromSession(r *http.Request) string {
+	sess := session.GetSession(r)
+	if email := sess.Get("user_email"); email != nil {
+		if e, ok := email.(string); ok {
+			return e
+		}
+	}
+	return ""
+}
+
+// SetUserEmail adds user email to request context
+func SetUserEmail(ctx context.Context, email string) context.Context {
+	return context.WithValue(ctx, userEmailKey, email)
+}
+
+// GetUserEmail retrieves user email from request context
+func GetUserEmail(ctx context.Context) string {
+	email, ok := ctx.Value(userEmailKey).(string)
+	if !ok {
+		return "anonymous"
+	}
+	return email
+}
+
+// UserContext middleware extracts user from session and adds to context
+func UserContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get user email from session
+		email := GetUserEmailFromSession(r)
+		if email != "" {
+			ctx := SetUserEmail(r.Context(), email)
+			r = r.WithContext(ctx)
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 // RequireAuth ensures the user is authenticated
 // If not authenticated, redirects to /login and stores the intended destination
@@ -26,12 +77,21 @@ func RequireAuth(next http.Handler) http.Handler {
 		}
 
 		// Add user ID to request context for use in handlers
-		ctx := context.WithValue(r.Context(), UserIDContextKey, userID)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		if id, ok := userID.(string); ok {
+			ctx := context.WithValue(r.Context(), UserIDContextKey, id)
+			r = r.WithContext(ctx)
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 
 // GetUserIDFromContext retrieves the user ID from request context
-func GetUserIDFromContext(ctx context.Context) interface{} {
-	return ctx.Value(UserIDContextKey)
+func GetUserIDFromContext(ctx context.Context) string {
+	if userID := ctx.Value(UserIDContextKey); userID != nil {
+		if id, ok := userID.(string); ok {
+			return id
+		}
+	}
+	return ""
 }

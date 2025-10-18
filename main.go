@@ -70,7 +70,7 @@ func main() {
 	}
 
 	// Set up router
-	r, err := setupRouter(ctrl, auth)
+	r, err := setupRouter(ctrl, auth, repos)
 	if err != nil {
 		log.Fatalf("Failed to setup router: %v", err)
 	}
@@ -89,7 +89,7 @@ func main() {
 }
 
 // setupRouter configures all routes
-func setupRouter(ctrl *controllers.Controllers, auth authenticator.Provider) (*chi.Mux, error) {
+func setupRouter(ctrl *controllers.Controllers, auth authenticator.Provider, repos *repositories.Repositories) (*chi.Mux, error) {
 	r := chi.NewRouter()
 
 	// Middleware
@@ -114,6 +114,8 @@ func setupRouter(ctrl *controllers.Controllers, auth authenticator.Provider) (*c
 		return nil, fmt.Errorf("failed to initialize session: %w", err)
 	}
 	r.Use(sessionHandler)
+	r.Use(authmiddleware.UserContext)              // Add user to context
+	r.Use(authmiddleware.AuditLogger(repos.Audit)) // Audit middleware
 
 	// Add debugging middleware
 	r.Use(func(next http.Handler) http.Handler {

@@ -79,6 +79,14 @@ func (ac *AuthController) Callback(auth authenticator.Provider) http.HandlerFunc
 		}
 		sess.Set("user_nickname", displayName)
 
+		// Store user email for audit logging
+		if email, ok := claims["email"].(string); ok {
+			sess.Set("user_email", email)
+		} else {
+			// Fallback to sub if email not available
+			sess.Set("user_email", claims["sub"].(string))
+		}
+
 		// Clear the state from session
 		sess.Delete("state")
 
@@ -101,6 +109,7 @@ func (ac *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	// Clear all session data
 	sess.Delete("user_id")
 	sess.Delete("user_nickname")
+	sess.Delete("user_email")
 	sess.Delete("state")
 	sess.Delete("redirect_after_login")
 
