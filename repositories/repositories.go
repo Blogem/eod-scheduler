@@ -9,6 +9,7 @@ type Repositories struct {
 	Team         TeamRepository
 	WorkingHours WorkingHoursRepository
 	Schedule     ScheduleRepository
+	Audit        AuditRepository
 }
 
 // NewRepositories creates and initializes all repositories
@@ -17,5 +18,6 @@ func NewRepositories(db *sql.DB) *Repositories {
 		Team:         NewTeamRepository(db),
 		WorkingHours: NewWorkingHoursRepository(db),
 		Schedule:     NewScheduleRepository(db),
+		Audit:        NewAuditRepository(db),
 	}
 }
