@@ -13,6 +13,7 @@ import (
 	"github.com/blogem/eod-scheduler/authenticator"
 	"github.com/blogem/eod-scheduler/controllers"
 	"github.com/blogem/eod-scheduler/database"
+	authmiddleware "github.com/blogem/eod-scheduler/middleware"
 	"github.com/blogem/eod-scheduler/repositories"
 	"github.com/blogem/eod-scheduler/services"
 	"github.com/go-chi/chi/v5"
@@ -108,57 +109,60 @@ func setupRouter(ctrl *controllers.Controllers, auth authenticator.Provider) (*c
 	// Static files (if we add any later)
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
-	// Dashboard routes
-	r.Get("/", ctrl.Dashboard.Index)
-
-	// Authentication routes
-	r.Get("/login", ctrl.Auth.Login(auth))
-	r.Get("/callback", ctrl.Auth.Callback(auth))
-
-	// Team management routes
-	r.Route("/team", func(r chi.Router) {
-		r.Get("/", ctrl.Team.Index)
-		r.Post("/", ctrl.Team.Create)
-		r.Get("/{id}/edit", ctrl.Team.Edit)
-		r.Post("/{id}", ctrl.Team.Update)
-		r.Post("/{id}/delete", ctrl.Team.Delete)
+	// PUBLIC ROUTES (no authentication required)
+	r.Group(func(r chi.Router) {
+		r.Get("/login", ctrl.Auth.Login(auth))
+		r.Get("/callback", ctrl.Auth.Callback(auth))
+		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, `{"status": "healthy", "service": "eod-scheduler"}`)
+		})
+		r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html")
+			fmt.Fprintf(w, "<h1>Test Route Works!</h1><p>Server is responding correctly.</p>")
+		})
 	})
 
-	// Working hours configuration routes
-	r.Route("/hours", func(r chi.Router) {
-		r.Get("/", ctrl.WorkingHours.Index)
-		r.Post("/", ctrl.WorkingHours.Update)
-	})
+	// PROTECTED ROUTES (authentication required)
+	r.Group(func(r chi.Router) {
+		r.Use(authmiddleware.RequireAuth)
 
-	// Schedule routes
-	r.Route("/schedule", func(r chi.Router) {
-		r.Get("/", ctrl.Schedule.Index)
-		r.Get("/week/{date}", ctrl.Schedule.Week)
-		r.Post("/generate", ctrl.Schedule.Generate)
+		// Dashboard routes
+		r.Get("/", ctrl.Dashboard.Index)
 
-		// Takeover routes
-		r.Get("/takeover", ctrl.Schedule.ShowTakeoverForm)
-		r.Post("/takeover", ctrl.Schedule.CreateTakeover)
+		// Team management routes
+		r.Route("/team", func(r chi.Router) {
+			r.Get("/", ctrl.Team.Index)
+			r.Post("/", ctrl.Team.Create)
+			r.Get("/{id}/edit", ctrl.Team.Edit)
+			r.Post("/{id}", ctrl.Team.Update)
+			r.Post("/{id}/delete", ctrl.Team.Delete)
+		})
 
-		// Edit routes
-		r.Get("/edit/{id}", ctrl.Schedule.ShowEditForm)
-		r.Post("/edit/{id}", ctrl.Schedule.UpdateEntry)
+		// Working hours configuration routes
+		r.Route("/hours", func(r chi.Router) {
+			r.Get("/", ctrl.WorkingHours.Index)
+			r.Post("/", ctrl.WorkingHours.Update)
+		})
 
-		// Remove override
-		r.Post("/remove/{id}", ctrl.Schedule.RemoveOverride)
-	})
+		// Schedule routes
+		r.Route("/schedule", func(r chi.Router) {
+			r.Get("/", ctrl.Schedule.Index)
+			r.Get("/week/{date}", ctrl.Schedule.Week)
+			r.Post("/generate", ctrl.Schedule.Generate)
 
-	// Health check endpoint
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"status": "healthy", "service": "eod-scheduler"}`)
-	})
+			// Takeover routes
+			r.Get("/takeover", ctrl.Schedule.ShowTakeoverForm)
+			r.Post("/takeover", ctrl.Schedule.CreateTakeover)
 
-	// Simple test endpoint
-	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, "<h1>Test Route Works!</h1><p>Server is responding correctly.</p>")
+			// Edit routes
+			r.Get("/edit/{id}", ctrl.Schedule.ShowEditForm)
+			r.Post("/edit/{id}", ctrl.Schedule.UpdateEntry)
+
+			// Remove override
+			r.Post("/remove/{id}", ctrl.Schedule.RemoveOverride)
+		})
 	})
 
 	return r, nil

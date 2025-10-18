@@ -82,8 +82,15 @@ func (ac *AuthController) Callback(auth authenticator.Provider) http.HandlerFunc
 		// Clear the state from session
 		sess.Delete("state")
 
-		// Redirect to the dashboard
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		// Check for redirect after login
+		redirectURL := "/"
+		if redirect := sess.Get("redirect_after_login"); redirect != nil {
+			redirectURL = redirect.(string)
+			sess.Delete("redirect_after_login")
+		}
+
+		// Redirect to the intended destination or dashboard
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 	}
 }
 
