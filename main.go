@@ -55,18 +55,18 @@ func main() {
 	// Initialize controllers
 	ctrl := controllers.NewControllers(srvs)
 
-	// Read Auth0 configuration from environment
-	auth0Config := authenticator.Auth0Config{
-		Domain:       requireEnv("AUTH0_DOMAIN"),
-		ClientID:     requireEnv("AUTH0_CLIENT_ID"),
-		ClientSecret: requireEnv("AUTH0_CLIENT_SECRET"),
-		CallbackURL:  requireEnv("AUTH0_CALLBACK_URL"),
+	// Read OpenID Connect configuration from environment
+	openIDConfig := authenticator.OpenIDConfig{
+		Domain:       requireEnv("OPENID_DOMAIN"),
+		ClientID:     requireEnv("OPENID_CLIENT_ID"),
+		ClientSecret: requireEnv("OPENID_CLIENT_SECRET"),
+		CallbackURL:  requireEnv("OPENID_CALLBACK_URL"),
 	}
 
-	// Initialize Auth0 provider
-	auth, err := authenticator.NewAuth0Provider(auth0Config)
+	// Initialize OpenID Connect provider
+	auth, err := authenticator.NewOpenIDProvider(openIDConfig)
 	if err != nil {
-		log.Fatalf("Failed to initialize Auth0 provider: %v", err)
+		log.Fatalf("Failed to initialize OpenID Connect provider: %v", err)
 	}
 
 	// Set up router

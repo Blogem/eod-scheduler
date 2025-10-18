@@ -8,22 +8,22 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// Auth0Provider implements the Provider interface for Auth0
-type Auth0Provider struct {
+// OpenIDProvider implements the Provider interface for OpenID Connect
+type OpenIDProvider struct {
 	provider *oidc.Provider
 	config   oauth2.Config
 }
 
-// Auth0Config holds Auth0-specific configuration
-type Auth0Config struct {
+// OpenIDConfig holds OpenID Connect configuration
+type OpenIDConfig struct {
 	Domain       string
 	ClientID     string
 	ClientSecret string
 	CallbackURL  string
 }
 
-// NewAuth0Provider creates a new Auth0 provider with the given configuration
-func NewAuth0Provider(cfg Auth0Config) (Provider, error) {
+// NewOpenIDProvider creates a new OpenID Connect provider with the given configuration
+func NewOpenIDProvider(cfg OpenIDConfig) (Provider, error) {
 	ctx := context.Background()
 
 	// Validate required configuration
@@ -56,19 +56,19 @@ func NewAuth0Provider(cfg Auth0Config) (Provider, error) {
 		Scopes:       []string{oidc.ScopeOpenID, "profile"},
 	}
 
-	return &Auth0Provider{
+	return &OpenIDProvider{
 		provider: provider,
 		config:   conf,
 	}, nil
 }
 
-// GetAuthURL returns the authorization URL for Auth0
-func (p *Auth0Provider) GetAuthURL(state string) string {
+// GetAuthURL returns the authorization URL for OpenID Connect
+func (p *OpenIDProvider) GetAuthURL(state string) string {
 	return p.config.AuthCodeURL(state)
 }
 
 // ExchangeCode exchanges an authorization code for tokens
-func (p *Auth0Provider) ExchangeCode(ctx context.Context, code string) (*Token, error) {
+func (p *OpenIDProvider) ExchangeCode(ctx context.Context, code string) (*Token, error) {
 	oauth2Token, err := p.config.Exchange(ctx, code)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (p *Auth0Provider) ExchangeCode(ctx context.Context, code string) (*Token, 
 }
 
 // GetClaims extracts user claims from the ID token
-func (p *Auth0Provider) GetClaims(ctx context.Context, token *Token) (Claims, error) {
+func (p *OpenIDProvider) GetClaims(ctx context.Context, token *Token) (Claims, error) {
 	if token.IDToken == "" {
 		return nil, errors.New("no id_token in token")
 	}
