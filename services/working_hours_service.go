@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -10,12 +11,12 @@ import (
 
 // WorkingHoursService interface defines working hours business logic
 type WorkingHoursService interface {
-	GetAllWorkingHours() ([]models.WorkingHours, error)
-	GetWorkingHoursByDay(dayOfWeek int) (*models.WorkingHours, error)
-	GetActiveDays() ([]models.WorkingHours, error)
-	UpdateWorkingHours(dayOfWeek int, form *models.WorkingHoursForm) (*models.WorkingHours, error)
-	UpdateAllWorkingHours(forms map[int]*models.WorkingHoursForm) error
-	IsWorkingDay(dayOfWeek int) (bool, error)
+	GetAllWorkingHours(ctx context.Context) ([]models.WorkingHours, error)
+	GetWorkingHoursByDay(ctx context.Context, dayOfWeek int) (*models.WorkingHours, error)
+	GetActiveDays(ctx context.Context) ([]models.WorkingHours, error)
+	UpdateWorkingHours(ctx context.Context, dayOfWeek int, form *models.WorkingHoursForm) (*models.WorkingHours, error)
+	UpdateAllWorkingHours(ctx context.Context, forms map[int]*models.WorkingHoursForm) error
+	IsWorkingDay(ctx context.Context, dayOfWeek int) (bool, error)
 	GetDayNames() map[int]string
 }
 
@@ -32,25 +33,25 @@ func NewWorkingHoursService(workingHoursRepo repositories.WorkingHoursRepository
 }
 
 // GetAllWorkingHours retrieves all working hours configurations
-func (s *workingHoursService) GetAllWorkingHours() ([]models.WorkingHours, error) {
-	return s.workingHoursRepo.GetAll()
+func (s *workingHoursService) GetAllWorkingHours(ctx context.Context) ([]models.WorkingHours, error) {
+	return s.workingHoursRepo.GetAll(ctx)
 }
 
 // GetWorkingHoursByDay retrieves working hours for a specific day
-func (s *workingHoursService) GetWorkingHoursByDay(dayOfWeek int) (*models.WorkingHours, error) {
+func (s *workingHoursService) GetWorkingHoursByDay(ctx context.Context, dayOfWeek int) (*models.WorkingHours, error) {
 	if dayOfWeek < 0 || dayOfWeek > 6 {
 		return nil, fmt.Errorf("invalid day of week: %d (must be 0-6)", dayOfWeek)
 	}
-	return s.workingHoursRepo.GetByDay(dayOfWeek)
+	return s.workingHoursRepo.GetByDay(ctx, dayOfWeek)
 }
 
 // GetActiveDays retrieves only active working days
-func (s *workingHoursService) GetActiveDays() ([]models.WorkingHours, error) {
-	return s.workingHoursRepo.GetActiveDays()
+func (s *workingHoursService) GetActiveDays(ctx context.Context) ([]models.WorkingHours, error) {
+	return s.workingHoursRepo.GetActiveDays(ctx)
 }
 
 // UpdateWorkingHours updates working hours for a specific day
-func (s *workingHoursService) UpdateWorkingHours(dayOfWeek int, form *models.WorkingHoursForm) (*models.WorkingHours, error) {
+func (s *workingHoursService) UpdateWorkingHours(ctx context.Context, dayOfWeek int, form *models.WorkingHoursForm) (*models.WorkingHours, error) {
 	if dayOfWeek < 0 || dayOfWeek > 6 {
 		return nil, fmt.Errorf("invalid day of week: %d (must be 0-6)", dayOfWeek)
 	}
@@ -61,7 +62,7 @@ func (s *workingHoursService) UpdateWorkingHours(dayOfWeek int, form *models.Wor
 	}
 
 	// Get existing working hours
-	existing, err := s.workingHoursRepo.GetByDay(dayOfWeek)
+	existing, err := s.workingHoursRepo.GetByDay(ctx, dayOfWeek)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get existing working hours: %w", err)
 	}
@@ -77,7 +78,7 @@ func (s *workingHoursService) UpdateWorkingHours(dayOfWeek int, form *models.Wor
 		existing.EndTime = "00:00"
 	}
 
-	if err := s.workingHoursRepo.Update(existing); err != nil {
+	if err := s.workingHoursRepo.Update(ctx, existing); err != nil {
 		return nil, fmt.Errorf("failed to update working hours: %w", err)
 	}
 
@@ -85,7 +86,7 @@ func (s *workingHoursService) UpdateWorkingHours(dayOfWeek int, form *models.Wor
 }
 
 // UpdateAllWorkingHours updates working hours for multiple days
-func (s *workingHoursService) UpdateAllWorkingHours(forms map[int]*models.WorkingHoursForm) error {
+func (s *workingHoursService) UpdateAllWorkingHours(ctx context.Context, forms map[int]*models.WorkingHoursForm) error {
 	// Validate all forms first
 	for dayOfWeek, form := range forms {
 		if dayOfWeek < 0 || dayOfWeek > 6 {
@@ -113,7 +114,7 @@ func (s *workingHoursService) UpdateAllWorkingHours(forms map[int]*models.Workin
 
 	// Update all working hours
 	for dayOfWeek, form := range forms {
-		_, err := s.UpdateWorkingHours(dayOfWeek, form)
+		_, err := s.UpdateWorkingHours(ctx, dayOfWeek, form)
 		if err != nil {
 			dayName := models.DayNames[dayOfWeek]
 			return fmt.Errorf("failed to update %s: %w", dayName, err)
@@ -124,12 +125,12 @@ func (s *workingHoursService) UpdateAllWorkingHours(forms map[int]*models.Workin
 }
 
 // IsWorkingDay checks if a specific day is a working day
-func (s *workingHoursService) IsWorkingDay(dayOfWeek int) (bool, error) {
+func (s *workingHoursService) IsWorkingDay(ctx context.Context, dayOfWeek int) (bool, error) {
 	if dayOfWeek < 0 || dayOfWeek > 6 {
 		return false, fmt.Errorf("invalid day of week: %d (must be 0-6)", dayOfWeek)
 	}
 
-	workingHours, err := s.workingHoursRepo.GetByDay(dayOfWeek)
+	workingHours, err := s.workingHoursRepo.GetByDay(ctx, dayOfWeek)
 	if err != nil {
 		return false, fmt.Errorf("failed to get working hours: %w", err)
 	}

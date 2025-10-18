@@ -24,7 +24,7 @@ func NewTeamController(services *services.Services) *TeamController {
 
 // Index handles GET /team
 func (c *TeamController) Index(w http.ResponseWriter, r *http.Request) {
-	members, err := c.services.Team.GetAllMembers()
+	members, err := c.services.Team.GetAllMembers(r.Context())
 	if err != nil {
 		http.Error(w, "Failed to load team members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -68,10 +68,10 @@ func (c *TeamController) Create(w http.ResponseWriter, r *http.Request) {
 		Active:      isActive,
 	}
 
-	_, err := c.services.Team.CreateMember(form)
+	_, err := c.services.Team.CreateMember(r.Context(), form)
 	if err != nil {
 		// Reload page with form data and error
-		members, loadErr := c.services.Team.GetAllMembers()
+		members, loadErr := c.services.Team.GetAllMembers(r.Context())
 		if loadErr != nil {
 			http.Error(w, "Failed to load team members: "+loadErr.Error(), http.StatusInternalServerError)
 			return
@@ -112,7 +112,7 @@ func (c *TeamController) Edit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	member, err := c.services.Team.GetMemberByID(id)
+	member, err := c.services.Team.GetMemberByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Team member not found: "+err.Error(), http.StatusNotFound)
 		return
@@ -174,10 +174,10 @@ func (c *TeamController) Update(w http.ResponseWriter, r *http.Request) {
 		Active:      isActive,
 	}
 
-	_, err = c.services.Team.UpdateMember(id, form)
+	_, err = c.services.Team.UpdateMember(r.Context(), id, form)
 	if err != nil {
 		// Reload edit page with form data and error
-		member, loadErr := c.services.Team.GetMemberByID(id)
+		member, loadErr := c.services.Team.GetMemberByID(r.Context(), id)
 		if loadErr != nil {
 			http.Error(w, "Team member not found: "+loadErr.Error(), http.StatusNotFound)
 			return
@@ -218,7 +218,7 @@ func (c *TeamController) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := c.services.Team.DeleteMember(id); err != nil {
+	if err := c.services.Team.DeleteMember(r.Context(), id); err != nil {
 		// For delete errors, we'll redirect back with error in URL params
 		// (In a real app, you might want to use sessions/flash messages)
 		http.Redirect(w, r, "/team?error="+err.Error(), http.StatusSeeOther)

@@ -1,26 +1,28 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/blogem/eod-scheduler/models"
+	"github.com/blogem/eod-scheduler/userctx"
 )
 
 // ScheduleRepository interface defines schedule database operations
 type ScheduleRepository interface {
-	GetByDateRange(from, to time.Time) ([]models.ScheduleEntry, error)
-	GetByDate(date time.Time) ([]models.ScheduleEntry, error)
-	GetByID(id int) (*models.ScheduleEntry, error)
-	Create(entry *models.ScheduleEntry) error
-	Update(entry *models.ScheduleEntry) error
-	Delete(id int) error
-	DeleteByDateRange(from, to time.Time) error
-	GetState() (*models.ScheduleState, error)
-	UpdateState(state *models.ScheduleState) error
-	CountByTeamMember(teamMemberID int) (int, error)
-	HasFutureEntries(teamMemberID int) (bool, error)
+	GetByDateRange(ctx context.Context, from, to time.Time) ([]models.ScheduleEntry, error)
+	GetByDate(ctx context.Context, date time.Time) ([]models.ScheduleEntry, error)
+	GetByID(ctx context.Context, id int) (*models.ScheduleEntry, error)
+	Create(ctx context.Context, entry *models.ScheduleEntry) error
+	Update(ctx context.Context, entry *models.ScheduleEntry) error
+	Delete(ctx context.Context, id int) error
+	DeleteByDateRange(ctx context.Context, from, to time.Time) error
+	GetState(ctx context.Context) (*models.ScheduleState, error)
+	UpdateState(ctx context.Context, state *models.ScheduleState) error
+	CountByTeamMember(ctx context.Context, teamMemberID int) (int, error)
+	HasFutureEntries(ctx context.Context, teamMemberID int) (bool, error)
 }
 
 // scheduleRepository implements ScheduleRepository interface
@@ -34,7 +36,7 @@ func NewScheduleRepository(db *sql.DB) ScheduleRepository {
 }
 
 // GetByDateRange retrieves schedule entries within a date range with team member info
-func (r *scheduleRepository) GetByDateRange(from, to time.Time) ([]models.ScheduleEntry, error) {
+func (r *scheduleRepository) GetByDateRange(ctx context.Context, from, to time.Time) ([]models.ScheduleEntry, error) {
 	query := `
 		SELECT se.id, se.date, se.team_member_id, se.start_time, se.end_time, 
 			   se.is_manual_override, se.original_team_member_id,
@@ -90,12 +92,12 @@ func (r *scheduleRepository) GetByDateRange(from, to time.Time) ([]models.Schedu
 }
 
 // GetByDate retrieves schedule entries for a specific date
-func (r *scheduleRepository) GetByDate(date time.Time) ([]models.ScheduleEntry, error) {
-	return r.GetByDateRange(date, date)
+func (r *scheduleRepository) GetByDate(ctx context.Context, date time.Time) ([]models.ScheduleEntry, error) {
+	return r.GetByDateRange(ctx, date, date)
 }
 
-// GetByID retrieves a schedule entry by ID
-func (r *scheduleRepository) GetByID(id int) (*models.ScheduleEntry, error) {
+// GetByID retrieves a single schedule entry by ID with team member info
+func (r *scheduleRepository) GetByID(ctx context.Context, id int) (*models.ScheduleEntry, error) {
 	query := `
 		SELECT 
 			s.id, s.date, s.team_member_id, s.start_time, s.end_time, s.is_manual_override, s.original_team_member_id,
@@ -139,12 +141,14 @@ func (r *scheduleRepository) GetByID(id int) (*models.ScheduleEntry, error) {
 }
 
 // Create creates a new schedule entry
-func (r *scheduleRepository) Create(entry *models.ScheduleEntry) error {
+func (r *scheduleRepository) Create(ctx context.Context, entry *models.ScheduleEntry) error {
+	// Get user email from context for audit
+	userEmail := userctx.GetUserEmail(ctx)
 
 	fmt.Println("Creating schedule entry:", entry)
 	query := `
-		INSERT INTO schedule_entries (date, team_member_id, start_time, end_time, is_manual_override, original_team_member_id) 
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO schedule_entries (date, team_member_id, start_time, end_time, is_manual_override, original_team_member_id, created_by) 
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
 
 	result, err := r.db.Exec(query,
@@ -154,6 +158,7 @@ func (r *scheduleRepository) Create(entry *models.ScheduleEntry) error {
 		entry.EndTime,
 		entry.IsManualOverride,
 		entry.OriginalTeamMemberID,
+		userEmail,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create schedule entry: %w", err)
@@ -169,11 +174,16 @@ func (r *scheduleRepository) Create(entry *models.ScheduleEntry) error {
 	return nil
 }
 
-// Update updates an existing schedule entry
-func (r *scheduleRepository) Update(entry *models.ScheduleEntry) error {
+// Update updates an existing schedule entry with audit fields
+func (r *scheduleRepository) Update(ctx context.Context, entry *models.ScheduleEntry) error {
+	// Get user email from context for audit
+	userEmail := userctx.GetUserEmail(ctx)
+	now := time.Now()
+
 	query := `
 		UPDATE schedule_entries 
-		SET date = ?, team_member_id = ?, start_time = ?, end_time = ?, is_manual_override = ?, original_team_member_id = ?
+		SET date = ?, team_member_id = ?, start_time = ?, end_time = ?, is_manual_override = ?, original_team_member_id = ?,
+		    modified_by = ?, modified_at = ?
 		WHERE id = ?
 	`
 
@@ -184,6 +194,8 @@ func (r *scheduleRepository) Update(entry *models.ScheduleEntry) error {
 		entry.EndTime,
 		entry.IsManualOverride,
 		entry.OriginalTeamMemberID,
+		userEmail,
+		now,
 		entry.ID,
 	)
 	if err != nil {
@@ -203,7 +215,7 @@ func (r *scheduleRepository) Update(entry *models.ScheduleEntry) error {
 }
 
 // Delete deletes a schedule entry by ID
-func (r *scheduleRepository) Delete(id int) error {
+func (r *scheduleRepository) Delete(ctx context.Context, id int) error {
 	query := `DELETE FROM schedule_entries WHERE id = ?`
 
 	result, err := r.db.Exec(query, id)
@@ -224,7 +236,7 @@ func (r *scheduleRepository) Delete(id int) error {
 }
 
 // DeleteByDateRange deletes schedule entries within a date range
-func (r *scheduleRepository) DeleteByDateRange(from, to time.Time) error {
+func (r *scheduleRepository) DeleteByDateRange(ctx context.Context, from, to time.Time) error {
 	query := `DELETE FROM schedule_entries WHERE date >= ? AND date <= ?`
 
 	_, err := r.db.Exec(query, from.Format("2006-01-02"), to.Format("2006-01-02"))
@@ -236,7 +248,7 @@ func (r *scheduleRepository) DeleteByDateRange(from, to time.Time) error {
 }
 
 // GetState retrieves the current schedule state
-func (r *scheduleRepository) GetState() (*models.ScheduleState, error) {
+func (r *scheduleRepository) GetState(ctx context.Context) (*models.ScheduleState, error) {
 	query := `
 		SELECT id, last_generation_date 
 		FROM schedule_state 
@@ -255,7 +267,7 @@ func (r *scheduleRepository) GetState() (*models.ScheduleState, error) {
 			ID:                 1,
 			LastGenerationDate: time.Now(),
 		}
-		if err := r.UpdateState(defaultState); err != nil {
+		if err := r.UpdateState(ctx, defaultState); err != nil {
 			return nil, fmt.Errorf("failed to initialize schedule state: %w", err)
 		}
 		return defaultState, nil
@@ -268,7 +280,7 @@ func (r *scheduleRepository) GetState() (*models.ScheduleState, error) {
 }
 
 // UpdateState updates the schedule state
-func (r *scheduleRepository) UpdateState(state *models.ScheduleState) error {
+func (r *scheduleRepository) UpdateState(ctx context.Context, state *models.ScheduleState) error {
 	query := `
 		INSERT OR REPLACE INTO schedule_state (id, last_generation_date) 
 		VALUES (1, ?)
@@ -283,7 +295,7 @@ func (r *scheduleRepository) UpdateState(state *models.ScheduleState) error {
 }
 
 // CountByTeamMember counts schedule entries for a specific team member
-func (r *scheduleRepository) CountByTeamMember(teamMemberID int) (int, error) {
+func (r *scheduleRepository) CountByTeamMember(ctx context.Context, teamMemberID int) (int, error) {
 	query := `SELECT COUNT(*) FROM schedule_entries WHERE team_member_id = ?`
 
 	var count int
@@ -296,7 +308,7 @@ func (r *scheduleRepository) CountByTeamMember(teamMemberID int) (int, error) {
 }
 
 // HasFutureEntries checks if a team member has future schedule entries
-func (r *scheduleRepository) HasFutureEntries(teamMemberID int) (bool, error) {
+func (r *scheduleRepository) HasFutureEntries(ctx context.Context, teamMemberID int) (bool, error) {
 	query := `
 		SELECT COUNT(*) 
 		FROM schedule_entries 

@@ -1,19 +1,22 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/blogem/eod-scheduler/models"
+	"github.com/blogem/eod-scheduler/userctx"
 )
 
 // WorkingHoursRepository interface defines working hours database operations
 type WorkingHoursRepository interface {
-	GetAll() ([]models.WorkingHours, error)
-	GetByDay(dayOfWeek int) (*models.WorkingHours, error)
-	GetActiveDays() ([]models.WorkingHours, error)
-	Update(hours *models.WorkingHours) error
-	UpdateByDay(dayOfWeek int, startTime, endTime string, active bool) error
+	GetAll(ctx context.Context) ([]models.WorkingHours, error)
+	GetByDay(ctx context.Context, dayOfWeek int) (*models.WorkingHours, error)
+	GetActiveDays(ctx context.Context) ([]models.WorkingHours, error)
+	Update(ctx context.Context, hours *models.WorkingHours) error
+	UpdateByDay(ctx context.Context, dayOfWeek int, startTime, endTime string, active bool) error
 }
 
 // workingHoursRepository implements WorkingHoursRepository interface
@@ -27,7 +30,7 @@ func NewWorkingHoursRepository(db *sql.DB) WorkingHoursRepository {
 }
 
 // GetAll retrieves all working hours configurations
-func (r *workingHoursRepository) GetAll() ([]models.WorkingHours, error) {
+func (r *workingHoursRepository) GetAll(ctx context.Context) ([]models.WorkingHours, error) {
 	query := `
 		SELECT id, day_of_week, start_time, end_time, active 
 		FROM working_hours 
@@ -63,8 +66,8 @@ func (r *workingHoursRepository) GetAll() ([]models.WorkingHours, error) {
 	return hours, nil
 }
 
-// GetByDay retrieves working hours for a specific day
-func (r *workingHoursRepository) GetByDay(dayOfWeek int) (*models.WorkingHours, error) {
+// GetByDay retrieves working hours configuration for a specific day
+func (r *workingHoursRepository) GetByDay(ctx context.Context, dayOfWeek int) (*models.WorkingHours, error) {
 	query := `
 		SELECT id, day_of_week, start_time, end_time, active 
 		FROM working_hours 
@@ -90,8 +93,8 @@ func (r *workingHoursRepository) GetByDay(dayOfWeek int) (*models.WorkingHours, 
 	return &hour, nil
 }
 
-// GetActiveDays retrieves only active working days
-func (r *workingHoursRepository) GetActiveDays() ([]models.WorkingHours, error) {
+// GetActiveDays retrieves all active working days
+func (r *workingHoursRepository) GetActiveDays(ctx context.Context) ([]models.WorkingHours, error) {
 	query := `
 		SELECT id, day_of_week, start_time, end_time, active 
 		FROM working_hours 
@@ -128,15 +131,19 @@ func (r *workingHoursRepository) GetActiveDays() ([]models.WorkingHours, error) 
 	return hours, nil
 }
 
-// Update updates existing working hours
-func (r *workingHoursRepository) Update(hours *models.WorkingHours) error {
+// Update updates existing working hours with audit fields
+func (r *workingHoursRepository) Update(ctx context.Context, hours *models.WorkingHours) error {
+	// Get user email from context for audit
+	userEmail := userctx.GetUserEmail(ctx)
+	now := time.Now()
+
 	query := `
 		UPDATE working_hours 
-		SET start_time = ?, end_time = ?, active = ? 
+		SET start_time = ?, end_time = ?, active = ?, modified_by = ?, modified_at = ? 
 		WHERE day_of_week = ?
 	`
 
-	result, err := r.db.Exec(query, hours.StartTime, hours.EndTime, hours.Active, hours.DayOfWeek)
+	result, err := r.db.Exec(query, hours.StartTime, hours.EndTime, hours.Active, userEmail, now, hours.DayOfWeek)
 	if err != nil {
 		return fmt.Errorf("failed to update working hours: %w", err)
 	}
@@ -153,15 +160,19 @@ func (r *workingHoursRepository) Update(hours *models.WorkingHours) error {
 	return nil
 }
 
-// UpdateByDay updates working hours for a specific day
-func (r *workingHoursRepository) UpdateByDay(dayOfWeek int, startTime, endTime string, active bool) error {
+// UpdateByDay updates working hours for a specific day with audit fields
+func (r *workingHoursRepository) UpdateByDay(ctx context.Context, dayOfWeek int, startTime, endTime string, active bool) error {
+	// Get user email from context for audit
+	userEmail := userctx.GetUserEmail(ctx)
+	now := time.Now()
+
 	query := `
 		UPDATE working_hours 
-		SET start_time = ?, end_time = ?, active = ? 
+		SET start_time = ?, end_time = ?, active = ?, modified_by = ?, modified_at = ? 
 		WHERE day_of_week = ?
 	`
 
-	result, err := r.db.Exec(query, startTime, endTime, active, dayOfWeek)
+	result, err := r.db.Exec(query, startTime, endTime, active, userEmail, now, dayOfWeek)
 	if err != nil {
 		return fmt.Errorf("failed to update working hours for day %d: %w", dayOfWeek, err)
 	}

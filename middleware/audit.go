@@ -8,6 +8,7 @@ import (
 
 	"github.com/blogem/eod-scheduler/models"
 	"github.com/blogem/eod-scheduler/repositories"
+	"github.com/blogem/eod-scheduler/userctx"
 )
 
 // AuditLogger middleware logs all POST/PUT/DELETE requests
@@ -18,7 +19,7 @@ func AuditLogger(auditRepo repositories.AuditRepository) func(http.Handler) http
 			if r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodDelete {
 				// Create audit log entry
 				entry := &models.AuditLogEntry{
-					UserEmail: GetUserEmail(r.Context()),
+					UserEmail: userctx.GetUserEmail(r.Context()),
 					Method:    r.Method,
 					Path:      r.URL.Path,
 					UserAgent: r.UserAgent(),

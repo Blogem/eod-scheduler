@@ -27,7 +27,7 @@ func NewScheduleController(services *services.Services) *ScheduleController {
 func (c *ScheduleController) Index(w http.ResponseWriter, r *http.Request) {
 	// Get current week by default
 	currentWeek := models.GetCurrentWeek()
-	weeklySchedule, err := c.services.Schedule.GetWeeklySchedule(currentWeek.Start)
+	weeklySchedule, err := c.services.Schedule.GetWeeklySchedule(r.Context(), currentWeek.Start)
 	if err != nil {
 		http.Error(w, "Failed to load schedule: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -64,7 +64,7 @@ func (c *ScheduleController) Week(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	weeklySchedule, err := c.services.Schedule.GetWeeklySchedule(date)
+	weeklySchedule, err := c.services.Schedule.GetWeeklySchedule(r.Context(), date)
 	if err != nil {
 		http.Error(w, "Failed to load schedule: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -94,7 +94,7 @@ func (c *ScheduleController) Week(w http.ResponseWriter, r *http.Request) {
 // Generate handles POST /schedule/generate
 func (c *ScheduleController) Generate(w http.ResponseWriter, r *http.Request) {
 	// Always force regenerate - simplifies the interface
-	result, err := c.services.Schedule.GenerateSchedule(true)
+	result, err := c.services.Schedule.GenerateSchedule(r.Context(), true)
 	if err != nil {
 		http.Error(w, "Failed to generate schedule: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -114,7 +114,7 @@ func (c *ScheduleController) Generate(w http.ResponseWriter, r *http.Request) {
 // ShowTakeoverForm handles GET /schedule/takeover
 func (c *ScheduleController) ShowTakeoverForm(w http.ResponseWriter, r *http.Request) {
 	// Get all active team members for the dropdown
-	teamMembers, err := c.services.Team.GetActiveMembers()
+	teamMembers, err := c.services.Team.GetActiveMembers(r.Context())
 	if err != nil {
 		http.Error(w, "Failed to load team members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -123,7 +123,7 @@ func (c *ScheduleController) ShowTakeoverForm(w http.ResponseWriter, r *http.Req
 	// Get existing schedule entries from today for the next 14 days
 	today := time.Now().Truncate(24 * time.Hour)
 	endDate := today.AddDate(0, 0, 14)
-	entries, err := c.services.Schedule.GetScheduleByDateRange(today, endDate)
+	entries, err := c.services.Schedule.GetScheduleByDateRange(r.Context(), today, endDate)
 	if err != nil {
 		http.Error(w, "Failed to load schedule entries: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -196,7 +196,7 @@ func (c *ScheduleController) CreateTakeover(w http.ResponseWriter, r *http.Reque
 	// Validate the form
 	if errors := form.Validate(); len(errors) > 0 {
 		// Reload form with error
-		teamMembers, loadErr := c.services.Team.GetActiveMembers()
+		teamMembers, loadErr := c.services.Team.GetActiveMembers(r.Context())
 		if loadErr != nil {
 			http.Error(w, "Failed to load team members: "+loadErr.Error(), http.StatusInternalServerError)
 			return
@@ -204,7 +204,7 @@ func (c *ScheduleController) CreateTakeover(w http.ResponseWriter, r *http.Reque
 
 		today := time.Now().Truncate(24 * time.Hour)
 		endDate := today.AddDate(0, 0, 14)
-		entries, loadErr := c.services.Schedule.GetScheduleByDateRange(today, endDate)
+		entries, loadErr := c.services.Schedule.GetScheduleByDateRange(r.Context(), today, endDate)
 		if loadErr != nil {
 			http.Error(w, "Failed to load schedule entries: "+loadErr.Error(), http.StatusInternalServerError)
 			return
@@ -237,7 +237,7 @@ func (c *ScheduleController) CreateTakeover(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Process the takeover by updating the existing schedule entry
-	entry, err := c.services.Schedule.GetScheduleEntry(scheduleEntryID)
+	entry, err := c.services.Schedule.GetScheduleEntry(r.Context(), scheduleEntryID)
 	if err != nil {
 		http.Error(w, "Schedule entry not found: "+err.Error(), http.StatusNotFound)
 		return
@@ -251,7 +251,7 @@ func (c *ScheduleController) CreateTakeover(w http.ResponseWriter, r *http.Reque
 		EndTime:      entry.EndTime,
 	}
 
-	_, err = c.services.Schedule.CreateManualOverride(scheduleEntryID, updateForm)
+	_, err = c.services.Schedule.CreateManualOverride(r.Context(), scheduleEntryID, updateForm)
 	if err != nil {
 		http.Error(w, "Failed to process takeover: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -280,13 +280,13 @@ func (c *ScheduleController) ShowEditForm(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	entry, err := c.services.Schedule.GetScheduleEntry(id)
+	entry, err := c.services.Schedule.GetScheduleEntry(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Schedule entry not found: "+err.Error(), http.StatusNotFound)
 		return
 	}
 
-	teamMembers, err := c.services.Team.GetActiveMembers()
+	teamMembers, err := c.services.Team.GetActiveMembers(r.Context())
 	if err != nil {
 		http.Error(w, "Failed to load team members: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -351,16 +351,16 @@ func (c *ScheduleController) UpdateEntry(w http.ResponseWriter, r *http.Request)
 		EndTime:      r.FormValue("end_time"),
 	}
 
-	_, err = c.services.Schedule.UpdateScheduleEntry(id, form)
+	_, err = c.services.Schedule.UpdateScheduleEntry(r.Context(), id, form)
 	if err != nil {
 		// Reload form with error
-		entry, loadErr := c.services.Schedule.GetScheduleEntry(id)
+		entry, loadErr := c.services.Schedule.GetScheduleEntry(r.Context(), id)
 		if loadErr != nil {
 			http.Error(w, "Schedule entry not found: "+loadErr.Error(), http.StatusNotFound)
 			return
 		}
 
-		teamMembers, loadErr := c.services.Team.GetActiveMembers()
+		teamMembers, loadErr := c.services.Team.GetActiveMembers(r.Context())
 		if loadErr != nil {
 			http.Error(w, "Failed to load team members: "+loadErr.Error(), http.StatusInternalServerError)
 			return
@@ -409,7 +409,7 @@ func (c *ScheduleController) RemoveOverride(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := c.services.Schedule.RemoveManualOverride(id); err != nil {
+	if err := c.services.Schedule.RemoveManualOverride(r.Context(), id); err != nil {
 		// Redirect back with error to originating page or schedule page
 		redirectURL := r.FormValue("redirect")
 		if redirectURL == "" {

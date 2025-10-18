@@ -22,7 +22,7 @@ func NewWorkingHoursController(services *services.Services) *WorkingHoursControl
 
 // Index handles GET /hours
 func (c *WorkingHoursController) Index(w http.ResponseWriter, r *http.Request) {
-	workingHours, err := c.services.WorkingHours.GetAllWorkingHours()
+	workingHours, err := c.services.WorkingHours.GetAllWorkingHours(r.Context())
 	if err != nil {
 		http.Error(w, "Failed to load working hours: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -79,10 +79,10 @@ func (c *WorkingHoursController) Update(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	err := c.services.WorkingHours.UpdateAllWorkingHours(forms)
+	err := c.services.WorkingHours.UpdateAllWorkingHours(r.Context(), forms)
 	if err != nil {
 		// Reload page with error
-		workingHours, loadErr := c.services.WorkingHours.GetAllWorkingHours()
+		workingHours, loadErr := c.services.WorkingHours.GetAllWorkingHours(r.Context())
 		if loadErr != nil {
 			http.Error(w, "Failed to load working hours: "+loadErr.Error(), http.StatusInternalServerError)
 			return

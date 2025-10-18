@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"sort"
 	"testing"
@@ -11,23 +12,23 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/blogem/eod-scheduler/models"
-	"github.com/blogem/eod-scheduler/repositories/mocks"
+	dbMocks "github.com/blogem/eod-scheduler/repositories/mocks"
 )
 
 // GenerateScheduleTestSuite is a test suite for the GenerateSchedule method
 type GenerateScheduleTestSuite struct {
 	suite.Suite
 	service          ScheduleService
-	mockScheduleRepo *mocks.MockScheduleRepository
-	mockTeamRepo     *mocks.MockTeamRepository
-	mockWorkingRepo  *mocks.MockWorkingHoursRepository
+	mockScheduleRepo *dbMocks.MockScheduleRepository
+	mockTeamRepo     *dbMocks.MockTeamRepository
+	mockWorkingRepo  *dbMocks.MockWorkingHoursRepository
 }
 
 // SetupTest sets up the test suite before each test
 func (suite *GenerateScheduleTestSuite) SetupTest() {
-	suite.mockScheduleRepo = mocks.NewMockScheduleRepository(suite.T())
-	suite.mockTeamRepo = mocks.NewMockTeamRepository(suite.T())
-	suite.mockWorkingRepo = mocks.NewMockWorkingHoursRepository(suite.T())
+	suite.mockScheduleRepo = dbMocks.NewMockScheduleRepository(suite.T())
+	suite.mockTeamRepo = dbMocks.NewMockTeamRepository(suite.T())
+	suite.mockWorkingRepo = dbMocks.NewMockWorkingHoursRepository(suite.T())
 
 	suite.service = NewScheduleService(
 		suite.mockScheduleRepo,
@@ -39,10 +40,11 @@ func (suite *GenerateScheduleTestSuite) SetupTest() {
 // TestGenerateSchedule_ValidationFailure_NoActiveMembers tests validation failure when no active team members exist
 func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ValidationFailure_NoActiveMembers() {
 	// Setup: No active team members
-	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return([]models.TeamMember{}, nil)
+	ctx := context.Background()
+	suite.mockTeamRepo.EXPECT().GetActiveMembers(mock.Anything).Return([]models.TeamMember{}, nil)
 
 	// Act
-	result, err := suite.service.GenerateSchedule(false)
+	result, err := suite.service.GenerateSchedule(ctx, false)
 
 	// Assert
 	assert.NoError(suite.T(), err)
@@ -53,15 +55,16 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ValidationFailure_N
 
 // TestGenerateSchedule_ValidationFailure_NoActiveDays tests validation failure when no active working days exist
 func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ValidationFailure_NoActiveDays() {
+	ctx := context.Background()
 	// Setup: Active team members but no working days
 	activeMembers := []models.TeamMember{
 		{ID: 1, Name: "John Doe", Active: true},
 	}
-	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
-	suite.mockWorkingRepo.EXPECT().GetActiveDays().Return([]models.WorkingHours{}, nil)
+	suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return(activeMembers, nil)
+	suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return([]models.WorkingHours{}, nil)
 
 	// Act
-	result, err := suite.service.GenerateSchedule(false)
+	result, err := suite.service.GenerateSchedule(ctx, false)
 
 	// Assert
 	assert.NoError(suite.T(), err)
@@ -74,10 +77,10 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ValidationFailure_N
 func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ValidationFailure_RepositoryError() {
 	// Setup: Repository error
 	expectedError := errors.New("database connection failed")
-	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(nil, expectedError)
+	suite.mockTeamRepo.EXPECT().GetActiveMembers(context.Background()).Return(nil, expectedError)
 
 	// Act
-	result, err := suite.service.GenerateSchedule(false)
+	result, err := suite.service.GenerateSchedule(context.Background(), false)
 
 	// Assert - The validation failure returns a GenerationResult with Success=false, not an error
 	assert.NoError(suite.T(), err)
@@ -104,12 +107,14 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_UpToDate_RecentGene
 		{ID: 2, DayOfWeek: 1, StartTime: "09:00", EndTime: "17:00", Active: true}, // Tuesday
 	}
 
-	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
-	suite.mockWorkingRepo.EXPECT().GetActiveDays().Return(activeDays, nil)
-	suite.mockScheduleRepo.EXPECT().GetState().Return(scheduleState, nil)
+	ctx := context.Background()
+
+	suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return(activeMembers, nil)
+	suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return(activeDays, nil)
+	suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(scheduleState, nil)
 
 	// Act
-	result, err := suite.service.GenerateSchedule(false)
+	result, err := suite.service.GenerateSchedule(ctx, false)
 
 	// Assert
 	assert.NoError(suite.T(), err)
@@ -137,10 +142,12 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ForceGeneration() {
 		{ID: 1, DayOfWeek: 0, StartTime: "09:00", EndTime: "17:00", Active: true}, // Monday
 	}
 
+	ctx := context.Background()
+
 	// Mock expectations for successful generation
-	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
-	suite.mockWorkingRepo.EXPECT().GetActiveDays().Return(activeDays, nil)
-	suite.mockScheduleRepo.EXPECT().GetState().Return(scheduleState, nil)
+	suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return(activeMembers, nil)
+	suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return(activeDays, nil)
+	suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(scheduleState, nil)
 
 	// Mock getting existing entries and deleting non-overrides
 	today := time.Now()
@@ -150,7 +157,7 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ForceGeneration() {
 		{ID: 1, Date: today.AddDate(0, 0, 1), IsManualOverride: false},
 		{ID: 2, Date: today.AddDate(0, 0, 2), IsManualOverride: true}, // Should not be deleted
 	}
-	suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.MatchedBy(func(from time.Time) bool {
+	suite.mockScheduleRepo.EXPECT().GetByDateRange(ctx, mock.MatchedBy(func(from time.Time) bool {
 		// Cleanup always starts from tomorrow
 		return from.Year() == tomorrow.Year() && from.Month() == tomorrow.Month() && from.Day() == tomorrow.Day()
 	}), mock.MatchedBy(func(to time.Time) bool {
@@ -158,20 +165,20 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ForceGeneration() {
 	})).Return(existingEntries, nil)
 
 	// Expect deletion of non-override entries only
-	suite.mockScheduleRepo.EXPECT().Delete(1).Return(nil) // Delete non-override entry
+	suite.mockScheduleRepo.EXPECT().Delete(ctx, 1).Return(nil) // Delete non-override entry
 	// ID 2 (override) should NOT be deleted
 
 	// Mock creation of new entries - we'll expect at least one Monday in the next 3 months
-	suite.mockScheduleRepo.EXPECT().GetByDate(mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
-	suite.mockScheduleRepo.EXPECT().Create(mock.AnythingOfType("*models.ScheduleEntry")).Return(nil).Maybe()
+	suite.mockScheduleRepo.EXPECT().GetByDate(ctx, mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
+	suite.mockScheduleRepo.EXPECT().Create(ctx, mock.AnythingOfType("*models.ScheduleEntry")).Return(nil).Maybe()
 
 	// Mock state update
-	suite.mockScheduleRepo.EXPECT().UpdateState(mock.MatchedBy(func(state *models.ScheduleState) bool {
+	suite.mockScheduleRepo.EXPECT().UpdateState(ctx, mock.MatchedBy(func(state *models.ScheduleState) bool {
 		return state.ID == 1
 	})).Return(nil)
 
 	// Act
-	result, err := suite.service.GenerateSchedule(true)
+	result, err := suite.service.GenerateSchedule(ctx, true)
 
 	// Assert
 	assert.NoError(suite.T(), err)
@@ -200,25 +207,27 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_SuccessfulGeneratio
 		{ID: 3, DayOfWeek: 4, StartTime: "09:00", EndTime: "17:00", Active: true}, // Friday
 	}
 
+	ctx := context.Background()
+
 	// Mock expectations
-	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
-	suite.mockWorkingRepo.EXPECT().GetActiveDays().Return(activeDays, nil)
-	suite.mockScheduleRepo.EXPECT().GetState().Return(scheduleState, nil)
+	suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return(activeMembers, nil)
+	suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return(activeDays, nil)
+	suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(scheduleState, nil)
 
 	// Mock getting existing entries (empty for simplicity)
-	suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
+	suite.mockScheduleRepo.EXPECT().GetByDateRange(ctx, mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
 
 	// Mock entry creation - expect multiple calls for different days
-	suite.mockScheduleRepo.EXPECT().GetByDate(mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
-	suite.mockScheduleRepo.EXPECT().Create(mock.AnythingOfType("*models.ScheduleEntry")).Return(nil).Maybe()
+	suite.mockScheduleRepo.EXPECT().GetByDate(ctx, mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
+	suite.mockScheduleRepo.EXPECT().Create(ctx, mock.AnythingOfType("*models.ScheduleEntry")).Return(nil).Maybe()
 
 	// Mock state update
-	suite.mockScheduleRepo.EXPECT().UpdateState(mock.MatchedBy(func(state *models.ScheduleState) bool {
+	suite.mockScheduleRepo.EXPECT().UpdateState(ctx, mock.MatchedBy(func(state *models.ScheduleState) bool {
 		return state.ID == 1
 	})).Return(nil)
 
 	// Act
-	result, err := suite.service.GenerateSchedule(false)
+	result, err := suite.service.GenerateSchedule(ctx, false)
 
 	// Assert
 	assert.NoError(suite.T(), err)
@@ -246,24 +255,26 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_RoundRobinLogic() {
 		{ID: 1, DayOfWeek: 0, StartTime: "09:00", EndTime: "17:00", Active: true}, // Monday only
 	}
 
-	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
-	suite.mockWorkingRepo.EXPECT().GetActiveDays().Return(activeDays, nil)
-	suite.mockScheduleRepo.EXPECT().GetState().Return(scheduleState, nil)
-	suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
+	ctx := context.Background()
+
+	suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return(activeMembers, nil)
+	suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return(activeDays, nil)
+	suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(scheduleState, nil)
+	suite.mockScheduleRepo.EXPECT().GetByDateRange(ctx, mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
 
 	// Track the order of team member assignments
 	var assignedMembers []int
-	suite.mockScheduleRepo.EXPECT().GetByDate(mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
-	suite.mockScheduleRepo.EXPECT().Create(mock.MatchedBy(func(entry *models.ScheduleEntry) bool {
+	suite.mockScheduleRepo.EXPECT().GetByDate(ctx, mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
+	suite.mockScheduleRepo.EXPECT().Create(ctx, mock.MatchedBy(func(entry *models.ScheduleEntry) bool {
 		assignedMembers = append(assignedMembers, entry.TeamMemberID)
 		return entry.TeamMemberID == 20 || entry.TeamMemberID == 30 || entry.TeamMemberID == 10 // Expect round-robin
 	})).Return(nil).Maybe()
 
 	// Mock state update - expect the index to wrap around correctly
-	suite.mockScheduleRepo.EXPECT().UpdateState(mock.AnythingOfType("*models.ScheduleState")).Return(nil)
+	suite.mockScheduleRepo.EXPECT().UpdateState(ctx, mock.AnythingOfType("*models.ScheduleState")).Return(nil)
 
 	// Act
-	result, err := suite.service.GenerateSchedule(false)
+	result, err := suite.service.GenerateSchedule(ctx, false)
 
 	// Assert
 	assert.NoError(suite.T(), err)
@@ -301,10 +312,12 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_SkipManualOverrides
 		{ID: 1, DayOfWeek: 0, StartTime: "09:00", EndTime: "17:00", Active: true}, // Monday
 	}
 
-	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
-	suite.mockWorkingRepo.EXPECT().GetActiveDays().Return(activeDays, nil)
-	suite.mockScheduleRepo.EXPECT().GetState().Return(scheduleState, nil)
-	suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
+	ctx := context.Background()
+
+	suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return(activeMembers, nil)
+	suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return(activeDays, nil)
+	suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(scheduleState, nil)
+	suite.mockScheduleRepo.EXPECT().GetByDateRange(ctx, mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
 
 	// Mock GetByDate to return a manual override for a specific Monday
 	nextMonday := getNextMonday()
@@ -312,20 +325,20 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_SkipManualOverrides
 		{ID: 100, Date: nextMonday, TeamMemberID: 999, IsManualOverride: true},
 	}
 
-	suite.mockScheduleRepo.EXPECT().GetByDate(nextMonday).Return(manualOverride, nil).Maybe()
-	suite.mockScheduleRepo.EXPECT().GetByDate(mock.MatchedBy(func(date time.Time) bool {
+	suite.mockScheduleRepo.EXPECT().GetByDate(ctx, nextMonday).Return(manualOverride, nil).Maybe()
+	suite.mockScheduleRepo.EXPECT().GetByDate(ctx, mock.MatchedBy(func(date time.Time) bool {
 		return !date.Equal(nextMonday)
 	})).Return([]models.ScheduleEntry{}, nil).Maybe()
 
 	// Expect creation of entries but NOT for the day with manual override
-	suite.mockScheduleRepo.EXPECT().Create(mock.MatchedBy(func(entry *models.ScheduleEntry) bool {
+	suite.mockScheduleRepo.EXPECT().Create(ctx, mock.MatchedBy(func(entry *models.ScheduleEntry) bool {
 		return !entry.Date.Equal(nextMonday) // Should not create entry for manual override day
 	})).Return(nil).Maybe()
 
-	suite.mockScheduleRepo.EXPECT().UpdateState(mock.AnythingOfType("*models.ScheduleState")).Return(nil)
+	suite.mockScheduleRepo.EXPECT().UpdateState(ctx, mock.AnythingOfType("*models.ScheduleState")).Return(nil)
 
 	// Act
-	result, err := suite.service.GenerateSchedule(false)
+	result, err := suite.service.GenerateSchedule(ctx, false)
 
 	// Assert
 	assert.NoError(suite.T(), err)
@@ -337,38 +350,38 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_SkipManualOverrides
 func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ErrorHandling() {
 	testCases := []struct {
 		name          string
-		setupMocks    func()
+		setupMocks    func(ctx context.Context)
 		expectedError string
 	}{
 		{
 			name: "GetState error",
-			setupMocks: func() {
-				suite.mockTeamRepo.EXPECT().GetActiveMembers().Return([]models.TeamMember{{ID: 1}}, nil)
-				suite.mockWorkingRepo.EXPECT().GetActiveDays().Return([]models.WorkingHours{{DayOfWeek: 0}}, nil)
-				suite.mockScheduleRepo.EXPECT().GetState().Return(nil, errors.New("state error"))
+			setupMocks: func(ctx context.Context) {
+				suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return([]models.TeamMember{{ID: 1}}, nil)
+				suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return([]models.WorkingHours{{DayOfWeek: 0}}, nil)
+				suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(nil, errors.New("state error"))
 			},
 			expectedError: "failed to get schedule state",
 		},
 		{
 			name: "GetByDateRange error",
-			setupMocks: func() {
-				suite.mockTeamRepo.EXPECT().GetActiveMembers().Return([]models.TeamMember{{ID: 1}}, nil)
-				suite.mockWorkingRepo.EXPECT().GetActiveDays().Return([]models.WorkingHours{{DayOfWeek: 0}}, nil)
-				suite.mockScheduleRepo.EXPECT().GetState().Return(&models.ScheduleState{LastGenerationDate: time.Now().AddDate(0, 0, -8)}, nil)
-				suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return(nil, errors.New("range error"))
+			setupMocks: func(ctx context.Context) {
+				suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return([]models.TeamMember{{ID: 1}}, nil)
+				suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return([]models.WorkingHours{{DayOfWeek: 0}}, nil)
+				suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(&models.ScheduleState{LastGenerationDate: time.Now().AddDate(0, 0, -8)}, nil)
+				suite.mockScheduleRepo.EXPECT().GetByDateRange(ctx, mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return(nil, errors.New("range error"))
 			},
 			expectedError: "failed to get existing entries",
 		},
 		{
 			name: "UpdateState error",
-			setupMocks: func() {
-				suite.mockTeamRepo.EXPECT().GetActiveMembers().Return([]models.TeamMember{{ID: 1}}, nil)
-				suite.mockWorkingRepo.EXPECT().GetActiveDays().Return([]models.WorkingHours{{DayOfWeek: 0}}, nil)
-				suite.mockScheduleRepo.EXPECT().GetState().Return(&models.ScheduleState{LastGenerationDate: time.Now().AddDate(0, 0, -8)}, nil)
-				suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
-				suite.mockScheduleRepo.EXPECT().GetByDate(mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
-				suite.mockScheduleRepo.EXPECT().Create(mock.AnythingOfType("*models.ScheduleEntry")).Return(nil).Maybe()
-				suite.mockScheduleRepo.EXPECT().UpdateState(mock.AnythingOfType("*models.ScheduleState")).Return(errors.New("update error"))
+			setupMocks: func(ctx context.Context) {
+				suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return([]models.TeamMember{{ID: 1}}, nil)
+				suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return([]models.WorkingHours{{DayOfWeek: 0}}, nil)
+				suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(&models.ScheduleState{LastGenerationDate: time.Now().AddDate(0, 0, -8)}, nil)
+				suite.mockScheduleRepo.EXPECT().GetByDateRange(ctx, mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
+				suite.mockScheduleRepo.EXPECT().GetByDate(ctx, mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
+				suite.mockScheduleRepo.EXPECT().Create(ctx, mock.AnythingOfType("*models.ScheduleEntry")).Return(nil).Maybe()
+				suite.mockScheduleRepo.EXPECT().UpdateState(ctx, mock.AnythingOfType("*models.ScheduleState")).Return(errors.New("update error"))
 			},
 			expectedError: "failed to update schedule state",
 		},
@@ -378,10 +391,11 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ErrorHandling() {
 		suite.T().Run(tc.name, func(t *testing.T) {
 			// Setup fresh mocks for each test case
 			suite.SetupTest()
-			tc.setupMocks()
+			ctx := context.Background()
+			tc.setupMocks(ctx)
 
 			// Act
-			result, err := suite.service.GenerateSchedule(false)
+			result, err := suite.service.GenerateSchedule(ctx, false)
 
 			// Assert
 			assert.Error(t, err)
@@ -406,19 +420,21 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_DeterministicGenera
 		{ID: 1, DayOfWeek: 0, StartTime: "09:00", EndTime: "17:00", Active: true},
 	}
 
-	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
-	suite.mockWorkingRepo.EXPECT().GetActiveDays().Return(activeDays, nil)
-	suite.mockScheduleRepo.EXPECT().GetState().Return(scheduleState, nil)
-	suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
+	ctx := context.Background()
+
+	suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return(activeMembers, nil)
+	suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return(activeDays, nil)
+	suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(scheduleState, nil)
+	suite.mockScheduleRepo.EXPECT().GetByDateRange(ctx, mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
 
 	// Expect entries to be created based on deterministic date-based assignment
-	suite.mockScheduleRepo.EXPECT().GetByDate(mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
-	suite.mockScheduleRepo.EXPECT().Create(mock.AnythingOfType("*models.ScheduleEntry")).Return(nil).Maybe()
+	suite.mockScheduleRepo.EXPECT().GetByDate(ctx, mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
+	suite.mockScheduleRepo.EXPECT().Create(ctx, mock.AnythingOfType("*models.ScheduleEntry")).Return(nil).Maybe()
 
-	suite.mockScheduleRepo.EXPECT().UpdateState(mock.AnythingOfType("*models.ScheduleState")).Return(nil)
+	suite.mockScheduleRepo.EXPECT().UpdateState(ctx, mock.AnythingOfType("*models.ScheduleState")).Return(nil)
 
 	// Act
-	result, err := suite.service.GenerateSchedule(false)
+	result, err := suite.service.GenerateSchedule(ctx, false)
 
 	// Assert
 	assert.NoError(suite.T(), err)
@@ -489,11 +505,13 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_DeterministicAssign
 			// Mock the current time to be the test date
 			timeNow = func() time.Time { return tc.startDate }
 
+			ctx := context.Background()
+
 			// Set up mocks
-			suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
-			suite.mockWorkingRepo.EXPECT().GetActiveDays().Return(activeDays, nil)
-			suite.mockScheduleRepo.EXPECT().GetState().Return(scheduleState, nil)
-			suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
+			suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return(activeMembers, nil)
+			suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return(activeDays, nil)
+			suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(scheduleState, nil)
+			suite.mockScheduleRepo.EXPECT().GetByDateRange(ctx, mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil)
 
 			// Track assignments by day of week AND chronological sequence
 			assignments := make(map[time.Weekday][]int)
@@ -502,8 +520,8 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_DeterministicAssign
 				memberID int
 			}
 
-			suite.mockScheduleRepo.EXPECT().GetByDate(mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
-			suite.mockScheduleRepo.EXPECT().Create(mock.MatchedBy(func(entry *models.ScheduleEntry) bool {
+			suite.mockScheduleRepo.EXPECT().GetByDate(ctx, mock.AnythingOfType("time.Time")).Return([]models.ScheduleEntry{}, nil).Maybe()
+			suite.mockScheduleRepo.EXPECT().Create(ctx, mock.MatchedBy(func(entry *models.ScheduleEntry) bool {
 				weekday := entry.Date.Weekday()
 				assignments[weekday] = append(assignments[weekday], entry.TeamMemberID)
 				chronologicalAssignments = append(chronologicalAssignments, struct {
@@ -513,10 +531,10 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_DeterministicAssign
 				return true
 			})).Return(nil).Maybe()
 
-			suite.mockScheduleRepo.EXPECT().UpdateState(mock.AnythingOfType("*models.ScheduleState")).Return(nil)
+			suite.mockScheduleRepo.EXPECT().UpdateState(ctx, mock.AnythingOfType("*models.ScheduleState")).Return(nil)
 
 			// Act - Call the actual GenerateSchedule method
-			result, err := suite.service.GenerateSchedule(true) // Force generation
+			result, err := suite.service.GenerateSchedule(ctx, true) // Force generation
 
 			// Assert
 			assert.NoError(t, err)
@@ -599,28 +617,30 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_UnfairRoundRobin() 
 		{DayOfWeek: 4, StartTime: "09:00", EndTime: "17:00", Active: true}, // Friday
 	}
 
+	ctx := context.Background()
+
 	// Mock setup
-	suite.mockTeamRepo.EXPECT().GetActiveMembers().Return(activeMembers, nil)
-	suite.mockWorkingRepo.EXPECT().GetActiveDays().Return(activeDays, nil)
+	suite.mockTeamRepo.EXPECT().GetActiveMembers(ctx).Return(activeMembers, nil)
+	suite.mockWorkingRepo.EXPECT().GetActiveDays(ctx).Return(activeDays, nil)
 
 	// Mock schedule state
 	initialState := &models.ScheduleState{
 		ID:                 1,
 		LastGenerationDate: testStartDate.AddDate(0, 0, -30), // 30 days ago
 	}
-	suite.mockScheduleRepo.EXPECT().GetState().Return(initialState, nil)
+	suite.mockScheduleRepo.EXPECT().GetState(ctx).Return(initialState, nil)
 
 	// Mock existing entries - no existing entries
-	suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.Anything, mock.Anything).Return([]models.ScheduleEntry{}, nil)
+	suite.mockScheduleRepo.EXPECT().GetByDateRange(ctx, mock.Anything, mock.Anything).Return([]models.ScheduleEntry{}, nil)
 
 	// Mock GetByDate calls for override checks - no overrides
 	// Need to be more generous with the number of calls since it generates for 3 months
-	suite.mockScheduleRepo.EXPECT().GetByDate(mock.Anything).Return([]models.ScheduleEntry{}, nil).Maybe()
+	suite.mockScheduleRepo.EXPECT().GetByDate(ctx, mock.Anything).Return([]models.ScheduleEntry{}, nil).Maybe()
 
 	// Track created entries
 	var createdEntries []models.ScheduleEntry
-	suite.mockScheduleRepo.EXPECT().Create(mock.AnythingOfType("*models.ScheduleEntry")).RunAndReturn(
-		func(entry *models.ScheduleEntry) error {
+	suite.mockScheduleRepo.EXPECT().Create(ctx, mock.AnythingOfType("*models.ScheduleEntry")).RunAndReturn(
+		func(ctx context.Context, entry *models.ScheduleEntry) error {
 			entry.ID = len(createdEntries) + 1
 			createdEntries = append(createdEntries, *entry)
 			return nil
@@ -628,10 +648,10 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_UnfairRoundRobin() 
 	).Maybe() // Let it create as many as needed
 
 	// Mock state update
-	suite.mockScheduleRepo.EXPECT().UpdateState(mock.Anything).Return(nil)
+	suite.mockScheduleRepo.EXPECT().UpdateState(ctx, mock.Anything).Return(nil)
 
 	// Act
-	result, err := suite.service.GenerateSchedule(true)
+	result, err := suite.service.GenerateSchedule(ctx, true)
 
 	// Assert generation succeeded
 	assert.NoError(suite.T(), err)

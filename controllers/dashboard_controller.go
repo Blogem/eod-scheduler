@@ -22,15 +22,15 @@ func NewDashboardController(services *services.Services) *DashboardController {
 func (c *DashboardController) Index(w http.ResponseWriter, r *http.Request) {
 	// Check if user is authenticated
 	user := getUserNickname(r)
-	
+
 	// If not authenticated, show a landing page
 	if user == "" {
 		c.showLandingPage(w, r)
 		return
 	}
-	
+
 	// User is authenticated, show dashboard
-	data, err := c.services.Schedule.GetDashboardData()
+	data, err := c.services.Schedule.GetDashboardData(r.Context())
 	if err != nil {
 		http.Error(w, "Failed to load dashboard data: "+err.Error(), http.StatusInternalServerError)
 		return

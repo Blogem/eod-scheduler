@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -15,14 +16,14 @@ var timeNow = func() time.Time {
 
 // ScheduleService interface defines schedule management business logic
 type ScheduleService interface {
-	GetScheduleByDateRange(from, to time.Time) ([]models.ScheduleEntry, error)
-	GetDashboardData() (*DashboardData, error)
-	GetWeeklySchedule(startDate time.Time) (*models.WeekView, error)
-	GenerateSchedule(force bool) (*models.GenerationResult, error)
-	CreateManualOverride(entryID int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error)
-	UpdateScheduleEntry(id int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error)
-	RemoveManualOverride(id int) error
-	GetScheduleEntry(id int) (*models.ScheduleEntry, error)
+	GetScheduleByDateRange(ctx context.Context, from, to time.Time) ([]models.ScheduleEntry, error)
+	GetDashboardData(ctx context.Context) (*DashboardData, error)
+	GetWeeklySchedule(ctx context.Context, startDate time.Time) (*models.WeekView, error)
+	GenerateSchedule(ctx context.Context, force bool) (*models.GenerationResult, error)
+	CreateManualOverride(ctx context.Context, entryID int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error)
+	UpdateScheduleEntry(ctx context.Context, id int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error)
+	RemoveManualOverride(ctx context.Context, id int) error
+	GetScheduleEntry(ctx context.Context, id int) (*models.ScheduleEntry, error)
 }
 
 // DashboardData represents data for the dashboard view
@@ -55,15 +56,15 @@ func NewScheduleService(
 }
 
 // GetScheduleByDateRange retrieves schedule entries for a date range
-func (s *scheduleService) GetScheduleByDateRange(from, to time.Time) ([]models.ScheduleEntry, error) {
-	return s.scheduleRepo.GetByDateRange(from, to)
+func (s *scheduleService) GetScheduleByDateRange(ctx context.Context, from, to time.Time) ([]models.ScheduleEntry, error) {
+	return s.scheduleRepo.GetByDateRange(ctx, from, to)
 }
 
 // GetDashboardData retrieves data for the dashboard
-func (s *scheduleService) GetDashboardData() (*DashboardData, error) {
+func (s *scheduleService) GetDashboardData(ctx context.Context) (*DashboardData, error) {
 	// Get current week (Monday to Sunday)
 	currentWeek := models.GetCurrentWeek()
-	currentWeekEntries, err := s.scheduleRepo.GetByDateRange(currentWeek.Start, currentWeek.End)
+	currentWeekEntries, err := s.scheduleRepo.GetByDateRange(ctx, currentWeek.Start, currentWeek.End)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current week entries: %w", err)
 	}
@@ -71,25 +72,25 @@ func (s *scheduleService) GetDashboardData() (*DashboardData, error) {
 	// Get next 2 weeks
 	nextWeekStart := currentWeek.End.AddDate(0, 0, 1)
 	nextWeekEnd := nextWeekStart.AddDate(0, 0, 13) // 2 weeks
-	nextWeeksEntries, err := s.scheduleRepo.GetByDateRange(nextWeekStart, nextWeekEnd)
+	nextWeeksEntries, err := s.scheduleRepo.GetByDateRange(ctx, nextWeekStart, nextWeekEnd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get next weeks entries: %w", err)
 	}
 
 	// Get team count
-	teamCount, err := s.teamRepo.Count()
+	teamCount, err := s.teamRepo.Count(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get team count: %w", err)
 	}
 
 	// Get active days count
-	activeDays, err := s.workingHoursRepo.GetActiveDays()
+	activeDays, err := s.workingHoursRepo.GetActiveDays(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active days: %w", err)
 	}
 
 	// Get last generation date
-	state, err := s.scheduleRepo.GetState()
+	state, err := s.scheduleRepo.GetState(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get schedule state: %w", err)
 	}
@@ -104,9 +105,9 @@ func (s *scheduleService) GetDashboardData() (*DashboardData, error) {
 }
 
 // GetWeeklySchedule retrieves schedule entries for a specific week
-func (s *scheduleService) GetWeeklySchedule(startDate time.Time) (*models.WeekView, error) {
+func (s *scheduleService) GetWeeklySchedule(ctx context.Context, startDate time.Time) (*models.WeekView, error) {
 	weekRange := models.GetWeekStartingFrom(startDate)
-	entries, err := s.scheduleRepo.GetByDateRange(weekRange.Start, weekRange.End)
+	entries, err := s.scheduleRepo.GetByDateRange(ctx, weekRange.Start, weekRange.End)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get weekly schedule: %w", err)
 	}
@@ -141,9 +142,9 @@ func (s *scheduleService) GetWeeklySchedule(startDate time.Time) (*models.WeekVi
 }
 
 // GenerateSchedule generates schedule for the next 3 months
-func (s *scheduleService) GenerateSchedule(force bool) (*models.GenerationResult, error) {
+func (s *scheduleService) GenerateSchedule(ctx context.Context, force bool) (*models.GenerationResult, error) {
 	// Validate that generation is possible
-	if err := s.validateScheduleGeneration(); err != nil {
+	if err := s.validateScheduleGeneration(ctx); err != nil {
 		return &models.GenerationResult{
 			Success: false,
 			Message: err.Error(),
@@ -151,7 +152,7 @@ func (s *scheduleService) GenerateSchedule(force bool) (*models.GenerationResult
 	}
 
 	// Get current state
-	state, err := s.scheduleRepo.GetState()
+	state, err := s.scheduleRepo.GetState(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get schedule state: %w", err)
 	}
@@ -161,25 +162,25 @@ func (s *scheduleService) GenerateSchedule(force bool) (*models.GenerationResult
 		return s.createUpToDateResult(state), nil
 	}
 
-	// Get required data for generation
-	activeMembers, activeDays, err := s.getGenerationData()
+	// Get generation data (active members and working days)
+	activeMembers, activeDays, err := s.getGenerationData(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Clean up existing entries and prepare for new generation
-	if err := s.cleanupExistingEntries(); err != nil {
+	if err := s.cleanupExistingEntries(ctx); err != nil {
 		return nil, err
 	}
 
 	// Generate new schedule entries
-	entriesCreated, err := s.generateScheduleEntries(activeMembers, activeDays)
+	entriesCreated, err := s.generateScheduleEntries(ctx, activeMembers, activeDays)
 	if err != nil {
 		return nil, err
 	}
 
 	// Update state and return result
-	return s.finalizeGeneration(state, entriesCreated)
+	return s.finalizeGeneration(ctx, state, entriesCreated)
 }
 
 // isScheduleUpToDate checks if the schedule was generated recently
@@ -199,13 +200,13 @@ func (s *scheduleService) createUpToDateResult(state *models.ScheduleState) *mod
 }
 
 // getGenerationData retrieves active members and working days needed for generation
-func (s *scheduleService) getGenerationData() ([]models.TeamMember, []models.WorkingHours, error) {
-	activeMembers, err := s.teamRepo.GetActiveMembers()
+func (s *scheduleService) getGenerationData(ctx context.Context) ([]models.TeamMember, []models.WorkingHours, error) {
+	activeMembers, err := s.teamRepo.GetActiveMembers(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get active team members: %w", err)
 	}
 
-	activeDays, err := s.workingHoursRepo.GetActiveDays()
+	activeDays, err := s.workingHoursRepo.GetActiveDays(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get active working days: %w", err)
 	}
@@ -214,13 +215,13 @@ func (s *scheduleService) getGenerationData() ([]models.TeamMember, []models.Wor
 }
 
 // cleanupExistingEntries removes non-override entries from the future period
-func (s *scheduleService) cleanupExistingEntries() error {
+func (s *scheduleService) cleanupExistingEntries(ctx context.Context) error {
 	today := timeNow()
 	// Always start cleanup from tomorrow to never delete today's entry
 	startDate := today.AddDate(0, 0, 1)
 	futureEnd := today.AddDate(0, 3, 0) // 3 months ahead
 
-	existingEntries, err := s.scheduleRepo.GetByDateRange(startDate, futureEnd)
+	existingEntries, err := s.scheduleRepo.GetByDateRange(ctx, startDate, futureEnd)
 	if err != nil {
 		return fmt.Errorf("failed to get existing entries: %w", err)
 	}
@@ -228,7 +229,7 @@ func (s *scheduleService) cleanupExistingEntries() error {
 	// Delete only non-override entries to preserve manual changes
 	for _, entry := range existingEntries {
 		if !entry.IsManualOverride {
-			if err := s.scheduleRepo.Delete(entry.ID); err != nil {
+			if err := s.scheduleRepo.Delete(ctx, entry.ID); err != nil {
 				return fmt.Errorf("failed to delete existing entry: %w", err)
 			}
 		}
@@ -238,8 +239,8 @@ func (s *scheduleService) cleanupExistingEntries() error {
 }
 
 // generateScheduleEntries creates new schedule entries using deterministic assignment
-func (s *scheduleService) generateScheduleEntries(activeMembers []models.TeamMember, activeDays []models.WorkingHours) (int, error) {
-	workingDates, err := s.collectWorkingDates(activeDays)
+func (s *scheduleService) generateScheduleEntries(ctx context.Context, activeMembers []models.TeamMember, activeDays []models.WorkingHours) (int, error) {
+	workingDates, err := s.collectWorkingDates(ctx, activeDays)
 	if err != nil {
 		return 0, err
 	}
@@ -248,7 +249,7 @@ func (s *scheduleService) generateScheduleEntries(activeMembers []models.TeamMem
 	for _, workingDate := range workingDates {
 		entry := s.createScheduleEntry(workingDate, activeMembers, activeDays)
 
-		if err := s.scheduleRepo.Create(entry); err != nil {
+		if err := s.scheduleRepo.Create(ctx, entry); err != nil {
 			return 0, fmt.Errorf("failed to create schedule entry: %w", err)
 		}
 
@@ -265,11 +266,11 @@ type WorkingDate struct {
 }
 
 // collectWorkingDates finds all working dates in the generation period that don't have overrides
-func (s *scheduleService) collectWorkingDates(activeDays []models.WorkingHours) ([]WorkingDate, error) {
+func (s *scheduleService) collectWorkingDates(ctx context.Context, activeDays []models.WorkingHours) ([]WorkingDate, error) {
 	today := timeNow()
 
 	// Check if today has any schedule entries
-	todayEntries, err := s.scheduleRepo.GetByDate(today)
+	todayEntries, err := s.scheduleRepo.GetByDate(ctx, today)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check today's entries: %w", err)
 	}
@@ -293,7 +294,7 @@ func (s *scheduleService) collectWorkingDates(activeDays []models.WorkingHours) 
 		}
 
 		// Skip dates that already have manual overrides
-		if hasOverride, err := s.hasManualOverride(date); err != nil {
+		if hasOverride, err := s.hasManualOverride(ctx, date); err != nil {
 			return nil, fmt.Errorf("failed to check existing entries for date: %w", err)
 		} else if hasOverride {
 			continue
@@ -319,8 +320,8 @@ func (s *scheduleService) findWorkingHoursForDay(activeDays []models.WorkingHour
 }
 
 // hasManualOverride checks if a date already has a manual override entry
-func (s *scheduleService) hasManualOverride(date time.Time) (bool, error) {
-	existingForDay, err := s.scheduleRepo.GetByDate(date)
+func (s *scheduleService) hasManualOverride(ctx context.Context, date time.Time) (bool, error) {
+	existingForDay, err := s.scheduleRepo.GetByDate(ctx, date)
 	if err != nil {
 		return false, err
 	}
@@ -385,10 +386,10 @@ func (s *scheduleService) calculateWorkingDaysSinceEpoch(date time.Time, activeD
 }
 
 // finalizeGeneration updates the state and creates the final result
-func (s *scheduleService) finalizeGeneration(state *models.ScheduleState, entriesCreated int) (*models.GenerationResult, error) {
+func (s *scheduleService) finalizeGeneration(ctx context.Context, state *models.ScheduleState, entriesCreated int) (*models.GenerationResult, error) {
 	// Update state
 	state.LastGenerationDate = timeNow()
-	if err := s.scheduleRepo.UpdateState(state); err != nil {
+	if err := s.scheduleRepo.UpdateState(ctx, state); err != nil {
 		return nil, fmt.Errorf("failed to update schedule state: %w", err)
 	}
 
@@ -404,14 +405,14 @@ func (s *scheduleService) finalizeGeneration(state *models.ScheduleState, entrie
 // Helper functions for shared logic between CreateManualOverride and UpdateScheduleEntry
 
 // validateFormAndTeamMember validates the form and checks if the team member exists
-func (s *scheduleService) validateFormAndTeamMember(form *models.ScheduleEntryForm) error {
+func (s *scheduleService) validateFormAndTeamMember(ctx context.Context, form *models.ScheduleEntryForm) error {
 	// Validate form
 	if errors := form.Validate(); len(errors) > 0 {
 		return fmt.Errorf("validation failed: %s", strings.Join(errors, ", "))
 	}
 
 	// Validate team member exists
-	_, err := s.teamRepo.GetByID(form.TeamMemberID)
+	_, err := s.teamRepo.GetByID(ctx, form.TeamMemberID)
 	if err != nil {
 		return fmt.Errorf("team member not found: %w", err)
 	}
@@ -429,12 +430,12 @@ func (s *scheduleService) parseDateFromForm(form *models.ScheduleEntryForm) (tim
 }
 
 // getExistingEntryWithValidation retrieves an existing entry by ID with validation
-func (s *scheduleService) getExistingEntryWithValidation(id int) (*models.ScheduleEntry, error) {
+func (s *scheduleService) getExistingEntryWithValidation(ctx context.Context, id int) (*models.ScheduleEntry, error) {
 	if id <= 0 {
 		return nil, fmt.Errorf("invalid schedule entry ID: %d", id)
 	}
 
-	entry, err := s.scheduleRepo.GetByID(id)
+	entry, err := s.scheduleRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("schedule entry not found: %w", err)
 	}
@@ -443,8 +444,8 @@ func (s *scheduleService) getExistingEntryWithValidation(id int) (*models.Schedu
 }
 
 // CreateManualOverride creates a manual schedule override
-func (s *scheduleService) CreateManualOverride(entryID int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error) {
-	if err := s.validateFormAndTeamMember(form); err != nil {
+func (s *scheduleService) CreateManualOverride(ctx context.Context, entryID int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error) {
+	if err := s.validateFormAndTeamMember(ctx, form); err != nil {
 		return nil, err
 	}
 
@@ -453,7 +454,7 @@ func (s *scheduleService) CreateManualOverride(entryID int, form *models.Schedul
 		return nil, err
 	}
 
-	existingEntry, err := s.getExistingEntryWithValidation(entryID)
+	existingEntry, err := s.getExistingEntryWithValidation(ctx, entryID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check existing entries: %w", err)
 	}
@@ -466,7 +467,7 @@ func (s *scheduleService) CreateManualOverride(entryID int, form *models.Schedul
 
 	// Delete existing non-override entries for this date
 	if !existingEntry.IsManualOverride {
-		if err := s.scheduleRepo.Delete(existingEntry.ID); err != nil {
+		if err := s.scheduleRepo.Delete(ctx, existingEntry.ID); err != nil {
 			return nil, fmt.Errorf("failed to delete existing entry: %w", err)
 		}
 	}
@@ -481,21 +482,21 @@ func (s *scheduleService) CreateManualOverride(entryID int, form *models.Schedul
 		OriginalTeamMemberID: originalTeamMemberID,
 	}
 
-	if err := s.scheduleRepo.Create(entry); err != nil {
+	if err := s.scheduleRepo.Create(ctx, entry); err != nil {
 		return nil, fmt.Errorf("failed to create manual override: %w", err)
 	}
 
 	// Get the created entry with team member info
-	return s.scheduleRepo.GetByID(entry.ID)
+	return s.scheduleRepo.GetByID(ctx, entry.ID)
 }
 
 // UpdateScheduleEntry updates an existing schedule entry
-func (s *scheduleService) UpdateScheduleEntry(id int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error) {
-	if err := s.validateFormAndTeamMember(form); err != nil {
+func (s *scheduleService) UpdateScheduleEntry(ctx context.Context, id int, form *models.ScheduleEntryForm) (*models.ScheduleEntry, error) {
+	if err := s.validateFormAndTeamMember(ctx, form); err != nil {
 		return nil, err
 	}
 
-	entry, err := s.getExistingEntryWithValidation(id)
+	entry, err := s.getExistingEntryWithValidation(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -518,22 +519,22 @@ func (s *scheduleService) UpdateScheduleEntry(id int, form *models.ScheduleEntry
 	entry.EndTime = strings.TrimSpace(form.EndTime)
 	entry.IsManualOverride = isManualOverride
 
-	if err := s.scheduleRepo.Update(entry); err != nil {
+	if err := s.scheduleRepo.Update(ctx, entry); err != nil {
 		return nil, fmt.Errorf("failed to update schedule entry: %w", err)
 	}
 
 	// Get the updated entry with team member info
-	return s.scheduleRepo.GetByID(entry.ID)
+	return s.scheduleRepo.GetByID(ctx, entry.ID)
 }
 
 // RemoveManualOverride removes a manual override and restores the original assignment
-func (s *scheduleService) RemoveManualOverride(id int) error {
+func (s *scheduleService) RemoveManualOverride(ctx context.Context, id int) error {
 	if id <= 0 {
 		return fmt.Errorf("invalid schedule entry ID: %d", id)
 	}
 
 	// Get the entry to be removed
-	entry, err := s.scheduleRepo.GetByID(id)
+	entry, err := s.scheduleRepo.GetByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("schedule entry not found: %w", err)
 	}
@@ -547,7 +548,7 @@ func (s *scheduleService) RemoveManualOverride(id int) error {
 	}
 
 	// Delete the override
-	if err := s.scheduleRepo.Delete(id); err != nil {
+	if err := s.scheduleRepo.Delete(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete manual override: %w", err)
 	}
 
@@ -559,7 +560,7 @@ func (s *scheduleService) RemoveManualOverride(id int) error {
 		dayOfWeek-- // Convert to our 0=Monday system
 	}
 
-	workingHours, err := s.workingHoursRepo.GetByDay(dayOfWeek)
+	workingHours, err := s.workingHoursRepo.GetByDay(ctx, dayOfWeek)
 	if err != nil {
 		return fmt.Errorf("failed to get working hours: %w", err)
 	}
@@ -573,7 +574,7 @@ func (s *scheduleService) RemoveManualOverride(id int) error {
 		IsManualOverride: false,
 	}
 
-	if err := s.scheduleRepo.Create(restoredEntry); err != nil {
+	if err := s.scheduleRepo.Create(ctx, restoredEntry); err != nil {
 		return fmt.Errorf("failed to restore original assignment: %w", err)
 	}
 
@@ -581,17 +582,17 @@ func (s *scheduleService) RemoveManualOverride(id int) error {
 }
 
 // GetScheduleEntry retrieves a schedule entry by ID
-func (s *scheduleService) GetScheduleEntry(id int) (*models.ScheduleEntry, error) {
+func (s *scheduleService) GetScheduleEntry(ctx context.Context, id int) (*models.ScheduleEntry, error) {
 	if id <= 0 {
 		return nil, fmt.Errorf("invalid schedule entry ID: %d", id)
 	}
-	return s.scheduleRepo.GetByID(id)
+	return s.scheduleRepo.GetByID(ctx, id)
 }
 
 // validateScheduleGeneration checks if schedule generation is possible
-func (s *scheduleService) validateScheduleGeneration() error {
+func (s *scheduleService) validateScheduleGeneration(ctx context.Context) error {
 	// Check if there are active team members
-	activeMembers, err := s.teamRepo.GetActiveMembers()
+	activeMembers, err := s.teamRepo.GetActiveMembers(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get active team members: %w", err)
 	}
@@ -601,7 +602,7 @@ func (s *scheduleService) validateScheduleGeneration() error {
 	}
 
 	// Check if there are active working days
-	activeDays, err := s.workingHoursRepo.GetActiveDays()
+	activeDays, err := s.workingHoursRepo.GetActiveDays(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get active working days: %w", err)
 	}

@@ -1,16 +1,11 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 
 	"gitea.com/go-chi/session"
+	"github.com/blogem/eod-scheduler/userctx"
 )
-
-type contextKey string
-
-const UserIDContextKey contextKey = "user_id"
-const userEmailKey contextKey = "user_email"
 
 // GetUserIDFromSession retrieves the user ID from session
 func GetUserIDFromSession(r *http.Request) string {
@@ -34,35 +29,19 @@ func GetUserEmailFromSession(r *http.Request) string {
 	return ""
 }
 
-// SetUserEmail adds user email to request context
-func SetUserEmail(ctx context.Context, email string) context.Context {
-	return context.WithValue(ctx, userEmailKey, email)
-}
-
-// GetUserEmail retrieves user email from request context
-func GetUserEmail(ctx context.Context) string {
-	email, ok := ctx.Value(userEmailKey).(string)
-	if !ok {
-		return "anonymous"
-	}
-	return email
-}
-
 // UserContext middleware extracts user from session and adds to context
 func UserContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get user email from session
 		email := GetUserEmailFromSession(r)
 		if email != "" {
-			ctx := SetUserEmail(r.Context(), email)
+			ctx := userctx.SetUserEmail(r.Context(), email)
 			r = r.WithContext(ctx)
 		}
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-// RequireAuth ensures the user is authenticated
+} // RequireAuth ensures the user is authenticated
 // If not authenticated, redirects to /login and stores the intended destination
 func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,20 +57,10 @@ func RequireAuth(next http.Handler) http.Handler {
 
 		// Add user ID to request context for use in handlers
 		if id, ok := userID.(string); ok {
-			ctx := context.WithValue(r.Context(), UserIDContextKey, id)
+			ctx := userctx.SetUserID(r.Context(), id)
 			r = r.WithContext(ctx)
 		}
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-// GetUserIDFromContext retrieves the user ID from request context
-func GetUserIDFromContext(ctx context.Context) string {
-	if userID := ctx.Value(UserIDContextKey); userID != nil {
-		if id, ok := userID.(string); ok {
-			return id
-		}
-	}
-	return ""
 }

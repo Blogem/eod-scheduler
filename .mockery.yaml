@@ -1,10 +1,15 @@
-with-expecter: true
 packages:
   github.com/blogem/eod-scheduler/repositories:
-    config:
-      dir: "repositories/mocks"
-      outpkg: "mocks"
     interfaces:
       TeamRepository:
+        config:
+          dir: "repositories/mocks"
+          filename: "mock_TeamRepository.go"
       WorkingHoursRepository:
+        config:
+          dir: "repositories/mocks"
+          filename: "mock_WorkingHoursRepository.go"
       ScheduleRepository:
+        config:
+          dir: "repositories/mocks"
+          filename: "mock_ScheduleRepository.go"

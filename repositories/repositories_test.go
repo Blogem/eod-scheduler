@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"testing"
@@ -31,6 +32,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 func TestTeamRepository(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewTeamRepository(db)
+	ctx := context.Background()
 
 	// Test Create
 	member := &models.TeamMember{
@@ -39,7 +41,7 @@ func TestTeamRepository(t *testing.T) {
 		Active:      true,
 	}
 
-	err := repo.Create(member)
+	err := repo.Create(ctx, member)
 	if err != nil {
 		t.Fatalf("Failed to create team member: %v", err)
 	}
@@ -49,7 +51,7 @@ func TestTeamRepository(t *testing.T) {
 	}
 
 	// Test GetByID
-	retrieved, err := repo.GetByID(member.ID)
+	retrieved, err := repo.GetByID(ctx, member.ID)
 	if err != nil {
 		t.Fatalf("Failed to get team member by ID: %v", err)
 	}
@@ -59,7 +61,7 @@ func TestTeamRepository(t *testing.T) {
 	}
 
 	// Test GetAll
-	members, err := repo.GetAll()
+	members, err := repo.GetAll(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get all team members: %v", err)
 	}
@@ -69,7 +71,7 @@ func TestTeamRepository(t *testing.T) {
 	}
 
 	// Test GetActiveMembers
-	activeMembers, err := repo.GetActiveMembers()
+	activeMembers, err := repo.GetActiveMembers(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get active team members: %v", err)
 	}
@@ -80,12 +82,12 @@ func TestTeamRepository(t *testing.T) {
 
 	// Test Update
 	member.Name = "Updated Name"
-	err = repo.Update(member)
+	err = repo.Update(ctx, member)
 	if err != nil {
 		t.Fatalf("Failed to update team member: %v", err)
 	}
 
-	updated, err := repo.GetByID(member.ID)
+	updated, err := repo.GetByID(ctx, member.ID)
 	if err != nil {
 		t.Fatalf("Failed to get updated team member: %v", err)
 	}
@@ -95,7 +97,7 @@ func TestTeamRepository(t *testing.T) {
 	}
 
 	// Test Count
-	count, err := repo.Count()
+	count, err := repo.Count(ctx)
 	if err != nil {
 		t.Fatalf("Failed to count team members: %v", err)
 	}
@@ -105,13 +107,13 @@ func TestTeamRepository(t *testing.T) {
 	}
 
 	// Test Delete
-	err = repo.Delete(member.ID)
+	err = repo.Delete(ctx, member.ID)
 	if err != nil {
 		t.Fatalf("Failed to delete team member: %v", err)
 	}
 
 	// Verify deletion
-	_, err = repo.GetByID(member.ID)
+	_, err = repo.GetByID(ctx, member.ID)
 	if err == nil {
 		t.Error("Expected error when getting deleted team member")
 	}
@@ -120,9 +122,10 @@ func TestTeamRepository(t *testing.T) {
 func TestWorkingHoursRepository(t *testing.T) {
 	db := setupTestDB(t)
 	repo := NewWorkingHoursRepository(db)
+	ctx := context.Background()
 
 	// Test GetAll (should have default data from migration)
-	hours, err := repo.GetAll()
+	hours, err := repo.GetAll(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get all working hours: %v", err)
 	}
@@ -132,7 +135,7 @@ func TestWorkingHoursRepository(t *testing.T) {
 	}
 
 	// Test GetByDay
-	monday, err := repo.GetByDay(0) // Monday
+	monday, err := repo.GetByDay(ctx, 0) // Monday
 	if err != nil {
 		t.Fatalf("Failed to get Monday working hours: %v", err)
 	}
@@ -142,23 +145,23 @@ func TestWorkingHoursRepository(t *testing.T) {
 	}
 
 	// Test GetActiveDays
-	activeDays, err := repo.GetActiveDays()
+	activeDays, err := repo.GetActiveDays(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get active days: %v", err)
 	}
 
-	if len(activeDays) != 5 { // Monday-Friday
+	if len(activeDays) != 5 { // Mon-Fri should be active by default
 		t.Errorf("Expected 5 active days, got %d", len(activeDays))
 	}
 
 	// Test UpdateByDay
-	err = repo.UpdateByDay(0, "08:00", "16:00", true)
+	err = repo.UpdateByDay(ctx, 0, "08:00", "16:00", true)
 	if err != nil {
 		t.Fatalf("Failed to update Monday working hours: %v", err)
 	}
 
 	// Verify update
-	updated, err := repo.GetByDay(0)
+	updated, err := repo.GetByDay(ctx, 0)
 	if err != nil {
 		t.Fatalf("Failed to get updated Monday working hours: %v", err)
 	}
@@ -172,6 +175,7 @@ func TestScheduleRepository(t *testing.T) {
 	db := setupTestDB(t)
 	scheduleRepo := NewScheduleRepository(db)
 	teamRepo := NewTeamRepository(db)
+	ctx := context.Background()
 
 	// Create a test team member first
 	member := &models.TeamMember{
@@ -179,7 +183,7 @@ func TestScheduleRepository(t *testing.T) {
 		SlackHandle: "@test.user",
 		Active:      true,
 	}
-	err := teamRepo.Create(member)
+	err := teamRepo.Create(ctx, member)
 	if err != nil {
 		t.Fatalf("Failed to create test team member: %v", err)
 	}
@@ -194,7 +198,7 @@ func TestScheduleRepository(t *testing.T) {
 		IsManualOverride: false,
 	}
 
-	err = scheduleRepo.Create(entry)
+	err = scheduleRepo.Create(ctx, entry)
 	if err != nil {
 		t.Fatalf("Failed to create schedule entry: %v", err)
 	}
@@ -204,7 +208,7 @@ func TestScheduleRepository(t *testing.T) {
 	}
 
 	// Test GetByID
-	retrieved, err := scheduleRepo.GetByID(entry.ID)
+	retrieved, err := scheduleRepo.GetByID(ctx, entry.ID)
 	if err != nil {
 		t.Fatalf("Failed to get schedule entry by ID: %v", err)
 	}
@@ -214,7 +218,7 @@ func TestScheduleRepository(t *testing.T) {
 	}
 
 	// Test GetByDateRange
-	entries, err := scheduleRepo.GetByDateRange(tomorrow, tomorrow)
+	entries, err := scheduleRepo.GetByDateRange(ctx, tomorrow, tomorrow)
 	if err != nil {
 		t.Fatalf("Failed to get schedule entries by date range: %v", err)
 	}
@@ -224,7 +228,7 @@ func TestScheduleRepository(t *testing.T) {
 	}
 
 	// Test GetState
-	state, err := scheduleRepo.GetState()
+	state, err := scheduleRepo.GetState(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get schedule state: %v", err)
 	}
@@ -236,13 +240,13 @@ func TestScheduleRepository(t *testing.T) {
 	// Test UpdateState - update the generation date
 	newDate := time.Now().AddDate(0, 0, 1)
 	state.LastGenerationDate = newDate
-	err = scheduleRepo.UpdateState(state)
+	err = scheduleRepo.UpdateState(ctx, state)
 	if err != nil {
 		t.Fatalf("Failed to update schedule state: %v", err)
 	}
 
 	// Verify state update
-	updatedState, err := scheduleRepo.GetState()
+	updatedState, err := scheduleRepo.GetState(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get updated schedule state: %v", err)
 	}
