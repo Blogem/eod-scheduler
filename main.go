@@ -20,6 +20,15 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// requireEnv fetches an environment variable and panics if it's not set
+func requireEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("Required environment variable %s is not set", key)
+	}
+	return value
+}
+
 func main() {
 	// Load environment variables from .env file
 	err := godotenv.Load()
@@ -46,8 +55,16 @@ func main() {
 	// Initialize controllers
 	ctrl := controllers.NewControllers(srvs)
 
+	// Read Auth0 configuration from environment
+	auth0Config := authenticator.Auth0Config{
+		Domain:       requireEnv("AUTH0_DOMAIN"),
+		ClientID:     requireEnv("AUTH0_CLIENT_ID"),
+		ClientSecret: requireEnv("AUTH0_CLIENT_SECRET"),
+		CallbackURL:  requireEnv("AUTH0_CALLBACK_URL"),
+	}
+
 	// Initialize Auth0 provider
-	auth, err := authenticator.NewAuth0Provider()
+	auth, err := authenticator.NewAuth0Provider(auth0Config)
 	if err != nil {
 		log.Fatalf("Failed to initialize Auth0 provider: %v", err)
 	}

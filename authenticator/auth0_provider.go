@@ -3,7 +3,6 @@ package authenticator
 import (
 	"context"
 	"errors"
-	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
@@ -15,41 +14,44 @@ type Auth0Provider struct {
 	config   oauth2.Config
 }
 
-// NewAuth0Provider creates a new Auth0 provider
-func NewAuth0Provider() (Provider, error) {
+// Auth0Config holds Auth0-specific configuration
+type Auth0Config struct {
+	Domain       string
+	ClientID     string
+	ClientSecret string
+	CallbackURL  string
+}
+
+// NewAuth0Provider creates a new Auth0 provider with the given configuration
+func NewAuth0Provider(cfg Auth0Config) (Provider, error) {
 	ctx := context.Background()
 
-	// Validate required environment variables
-	domain := os.Getenv("AUTH0_DOMAIN")
-	clientID := os.Getenv("AUTH0_CLIENT_ID")
-	clientSecret := os.Getenv("AUTH0_CLIENT_SECRET")
-	callbackURL := os.Getenv("AUTH0_CALLBACK_URL")
-
-	if domain == "" {
-		return nil, errors.New("AUTH0_DOMAIN environment variable is required")
+	// Validate required configuration
+	if cfg.Domain == "" {
+		return nil, errors.New("domain is required")
 	}
-	if clientID == "" {
-		return nil, errors.New("AUTH0_CLIENT_ID environment variable is required")
+	if cfg.ClientID == "" {
+		return nil, errors.New("client ID is required")
 	}
-	if clientSecret == "" {
-		return nil, errors.New("AUTH0_CLIENT_SECRET environment variable is required")
+	if cfg.ClientSecret == "" {
+		return nil, errors.New("client secret is required")
 	}
-	if callbackURL == "" {
-		return nil, errors.New("AUTH0_CALLBACK_URL environment variable is required")
+	if cfg.CallbackURL == "" {
+		return nil, errors.New("callback URL is required")
 	}
 
 	provider, err := oidc.NewProvider(
 		ctx,
-		"https://"+domain+"/",
+		"https://"+cfg.Domain+"/",
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	conf := oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  callbackURL,
+		ClientID:     cfg.ClientID,
+		ClientSecret: cfg.ClientSecret,
+		RedirectURL:  cfg.CallbackURL,
 		Endpoint:     provider.Endpoint(),
 		Scopes:       []string{oidc.ScopeOpenID, "profile"},
 	}
