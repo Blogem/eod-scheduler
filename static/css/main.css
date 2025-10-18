@@ -84,43 +84,6 @@
     --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Heineken Brand Theme */
-:root[data-theme="heineken"] {
-    --primary-50: #e8f5e8;
-    --primary-100: #c8e6c8;
-    --primary-200: #a0d2a0;
-    --primary-300: #6bb66b;
-    --primary-400: #4da64d;
-    --primary-500: #00a651;
-    /* Heineken Green */
-    --primary-600: #008f47;
-    --primary-700: #007a3d;
-    --primary-800: #006533;
-    --primary-900: #004d26;
-
-    --accent-50: #fff4e6;
-    --accent-100: #ffe4b3;
-    --accent-200: #ffd480;
-    --accent-300: #ffc44d;
-    --accent-400: #ffb41a;
-    --accent-500: #ff9900;
-    /* Heineken Orange/Gold */
-    --accent-600: #e68a00;
-    --accent-700: #cc7a00;
-
-    /* Override neutral grays with warmer tones for Heineken theme */
-    --gray-50: #fafaf9;
-    --gray-100: #f5f5f4;
-    --gray-200: #e7e5e4;
-    --gray-300: #d6d3d1;
-    --gray-400: #a8a29e;
-    --gray-500: #78716c;
-    --gray-600: #57534e;
-    --gray-700: #44403c;
-    --gray-800: #292524;
-    --gray-900: #1c1917;
-}
-
 /* Reset and Base Styles */
 *,
 *::before,
@@ -308,188 +271,6 @@ nav a.logout-btn:hover {
     color: white;
     background-color: var(--error-600);
     border-color: var(--error-700);
-}
-
-/* Heineken Theme Specific Styles */
-:root[data-theme="heineken"] header {
-    background: var(--primary-600);
-    border-bottom: 3px solid var(--accent-500);
-}
-
-:root[data-theme="heineken"] .header-content {
-    color: white;
-}
-
-:root[data-theme="heineken"] .logo {
-    color: white;
-    font-weight: 800;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-:root[data-theme="heineken"] .logo:hover {
-    color: var(--accent-200);
-}
-
-:root[data-theme="heineken"] nav a {
-    color: rgba(255, 255, 255, 0.9);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-:root[data-theme="heineken"] nav a:hover {
-    color: white;
-    background-color: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-:root[data-theme="heineken"] nav a.active {
-    color: var(--primary-800);
-    background-color: var(--accent-500);
-    border-color: var(--accent-600);
-    font-weight: 600;
-}
-
-:root[data-theme="heineken"] nav a.logout-btn {
-    color: rgba(255, 255, 255, 0.9);
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-:root[data-theme="heineken"] nav a.logout-btn:hover {
-    color: white;
-    background-color: var(--error-600);
-    border-color: var(--error-700);
-}
-
-:root[data-theme="heineken"] .card-featured {
-    background: var(--primary-50);
-    border: 3px solid var(--primary-500);
-    box-shadow: 0 8px 25px rgba(0, 166, 81, 0.2);
-}
-
-:root[data-theme="heineken"] .card-featured::before {
-    background: var(--primary-500);
-    height: 6px;
-}
-
-:root[data-theme="heineken"] .card-featured .card-title {
-    color: var(--primary-700);
-    font-weight: 700;
-}
-
-:root[data-theme="heineken"] .btn {
-    font-weight: 600;
-}
-
-:root[data-theme="heineken"] .btn:not(.btn-outline):not(.btn-secondary):not(.btn-danger):not(.btn-warning) {
-    background: var(--primary-600);
-    border-color: var(--primary-600);
-    box-shadow: 0 4px 14px 0 rgba(0, 166, 81, 0.3);
-}
-
-:root[data-theme="heineken"] .btn:not(.btn-outline):not(.btn-secondary):not(.btn-danger):not(.btn-warning):hover {
-    background: var(--primary-700);
-    box-shadow: 0 6px 20px 0 rgba(0, 166, 81, 0.4);
-}
-
-:root[data-theme="heineken"] .btn-success {
-    background: var(--primary-600);
-    border-color: var(--primary-600);
-}
-
-:root[data-theme="heineken"] .btn-success:hover {
-    background: var(--primary-700);
-}
-
-:root[data-theme="heineken"] .btn-secondary {
-    background-color: var(--primary-50);
-    color: var(--primary-700);
-    border-color: var(--primary-200);
-}
-
-:root[data-theme="heineken"] .btn-secondary:hover {
-    background-color: var(--primary-100);
-    color: var(--primary-800);
-    border-color: var(--primary-300);
-}
-
-:root[data-theme="heineken"] .btn-warning {
-    background-color: var(--accent-100);
-    color: var(--accent-700);
-    border-color: var(--accent-300);
-}
-
-:root[data-theme="heineken"] .btn-warning:hover {
-    background-color: var(--accent-200);
-    color: var(--accent-800);
-    border-color: var(--accent-400);
-}
-
-:root[data-theme="heineken"] .btn-muted {
-    background-color: transparent;
-    color: var(--primary-400);
-    border-color: var(--primary-200);
-}
-
-:root[data-theme="heineken"] .btn-muted:hover {
-    background-color: var(--primary-50);
-    color: var(--primary-600);
-    border-color: var(--primary-300);
-}
-
-/* Theme Toggle Button */
-.theme-toggle {
-    color: var(--gray-700);
-    background: var(--gray-100);
-    border: 2px solid var(--gray-300);
-    padding: var(--space-2) var(--space-4);
-    border-radius: var(--radius-xl);
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    white-space: nowrap;
-    position: relative;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: var(--shadow-sm);
-    margin-left: var(--space-4);
-}
-
-.theme-toggle:hover {
-    color: white;
-    background: var(--accent-500);
-    border-color: var(--accent-600);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-}
-
-.theme-toggle:active {
-    transform: translateY(0);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Heineken Theme Toggle Styling */
-:root[data-theme="heineken"] .theme-toggle {
-    background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
-    color: var(--primary-800);
-    border-color: var(--accent-500);
-    font-weight: 700;
-    box-shadow: 0 4px 12px rgba(255, 153, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-:root[data-theme="heineken"] .theme-toggle:hover {
-    background: linear-gradient(135deg, var(--accent-600), var(--accent-700));
-    color: var(--primary-900);
-    border-color: var(--accent-600);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 153, 0, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-:root[data-theme="heineken"] .theme-toggle:active {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 153, 0, 0.4);
 }
 
 /* Main Content */
@@ -882,23 +663,6 @@ tbody tr:last-child td {
     border-bottom: none;
 }
 
-/* Heineken Theme Table Styling */
-:root[data-theme="heineken"] th {
-    background: var(--primary-600);
-    color: white;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-:root[data-theme="heineken"] tbody tr:hover {
-    background: var(--primary-50);
-}
-
-:root[data-theme="heineken"] .table-container {
-    border: 2px solid var(--primary-200);
-    box-shadow: 0 4px 12px rgba(0, 166, 81, 0.1);
-}
-
 .table-actions {
     display: flex;
     gap: var(--space-2);
@@ -1132,24 +896,6 @@ tbody tr:last-child td {
     border-left: 4px solid #3498db;
 }
 
-/* Heineken Theme Stat Cards */
-:root[data-theme="heineken"] .stat-card {
-    background: var(--primary-50);
-    border-left: 6px solid var(--primary-500);
-    border-top: 2px solid var(--accent-500);
-    box-shadow: 0 6px 20px rgba(0, 166, 81, 0.15);
-}
-
-:root[data-theme="heineken"] .stat-number {
-    color: var(--primary-700);
-    font-weight: 800;
-}
-
-:root[data-theme="heineken"] .stat-label {
-    color: var(--primary-600);
-    font-weight: 600;
-}
-
 .stat-number {
     font-size: 2.5rem;
     font-weight: 700;
@@ -1171,13 +917,6 @@ footer {
     text-align: center;
     padding: var(--space-8) 0;
     margin-top: var(--space-16);
-}
-
-/* Heineken Theme Footer */
-:root[data-theme="heineken"] footer {
-    background: var(--primary-900);
-    border-top: 3px solid var(--accent-500);
-    color: rgba(255, 255, 255, 0.9);
 }
 
 .footer-content {
@@ -1469,14 +1208,4 @@ footer {
     margin-left: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.025em;
-}
-
-/* Dark theme support for today highlight */
-[data-theme="dark"] .today-highlight {
-    background-color: rgba(59, 130, 246, 0.1) !important;
-    border-left-color: var(--accent-500) !important;
-}
-
-[data-theme="dark"] .today-badge {
-    background-color: var(--accent-500);
 }

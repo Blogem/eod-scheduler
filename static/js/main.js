@@ -1,57 +1,6 @@
 // EoD Scheduler - Interactive Features
 
-// Theme Management
-class ThemeManager {
-    constructor() {
-        this.currentTheme = localStorage.getItem('eod-theme') || 'neutral';
-        this.init();
-    }
-
-    init() {
-        this.applyTheme(this.currentTheme);
-        this.createThemeToggle();
-    }
-
-    applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        this.currentTheme = theme;
-        localStorage.setItem('eod-theme', theme);
-    }
-
-    toggleTheme() {
-        const newTheme = this.currentTheme === 'neutral' ? 'heineken' : 'neutral';
-        this.applyTheme(newTheme);
-        this.updateToggleButton();
-    }
-
-    createThemeToggle() {
-        const button = document.querySelector('.theme-toggle');
-        console.log('Looking for theme toggle button:', button);
-        if (button) {
-            this.updateToggleButton(button);
-            button.addEventListener('click', () => this.toggleTheme());
-            console.log('Theme toggle functionality added');
-        } else {
-            console.log('Theme toggle button not found');
-        }
-    }
-
-    updateToggleButton(button = document.querySelector('.theme-toggle')) {
-        if (button) {
-            if (this.currentTheme === 'heineken') {
-                button.innerHTML = 'Heineken';
-                button.title = 'Switch to neutral theme';
-            } else {
-                button.innerHTML = 'Neutral';
-                button.title = 'Switch to Heineken theme';
-            }
-        }
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function () {
-    // Initialize theme management
-    const themeManager = new ThemeManager();
     // Add loading states to form submissions
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
