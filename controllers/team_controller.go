@@ -37,6 +37,7 @@ func (c *TeamController) Index(w http.ResponseWriter, r *http.Request) {
 		Success     string
 		Members     []models.TeamMember
 		Form        *models.TeamMemberForm
+		User        string
 	}{
 		Title:       "Team Management",
 		CurrentPage: "team",
@@ -44,6 +45,7 @@ func (c *TeamController) Index(w http.ResponseWriter, r *http.Request) {
 		Success:     "",
 		Members:     members,
 		Form:        &models.TeamMemberForm{Active: true}, // Default to active for new members
+		User:        getUserNickname(r),
 	}
 
 	renderTemplate(w, "team", "templates/team.html", templateData)
@@ -82,6 +84,7 @@ func (c *TeamController) Create(w http.ResponseWriter, r *http.Request) {
 			Success     string
 			Members     []models.TeamMember
 			Form        *models.TeamMemberForm
+			User        string
 		}{
 			Title:       "Team Management",
 			CurrentPage: "team",
@@ -89,6 +92,7 @@ func (c *TeamController) Create(w http.ResponseWriter, r *http.Request) {
 			Success:     "",
 			Members:     members,
 			Form:        form,
+			User:        getUserNickname(r),
 		}
 
 		renderTemplateWithStatus(w, http.StatusBadRequest, "team_create_error", "templates/team.html", templateData)
@@ -127,6 +131,7 @@ func (c *TeamController) Edit(w http.ResponseWriter, r *http.Request) {
 		Success     string
 		Member      *models.TeamMember
 		Form        *models.TeamMemberForm
+		User        string
 	}{
 		Title:       "Edit Team Member",
 		CurrentPage: "team",
@@ -134,6 +139,7 @@ func (c *TeamController) Edit(w http.ResponseWriter, r *http.Request) {
 		Success:     "",
 		Member:      member,
 		Form:        form,
+		User:        getUserNickname(r),
 	}
 
 	renderTemplate(w, "team_edit", "templates/team_edit.html", templateData)
@@ -184,6 +190,7 @@ func (c *TeamController) Update(w http.ResponseWriter, r *http.Request) {
 			Success     string
 			Member      *models.TeamMember
 			Form        *models.TeamMemberForm
+			User        string
 		}{
 			Title:       "Edit Team Member",
 			CurrentPage: "team",
@@ -191,6 +198,7 @@ func (c *TeamController) Update(w http.ResponseWriter, r *http.Request) {
 			Success:     "",
 			Member:      member,
 			Form:        form,
+			User:        getUserNickname(r),
 		}
 
 		renderTemplateWithStatus(w, http.StatusBadRequest, "team_update_error", "templates/team_edit.html", templateData)

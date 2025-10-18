@@ -40,6 +40,7 @@ func (c *ScheduleController) Index(w http.ResponseWriter, r *http.Request) {
 		Success     string
 		Schedule    *models.WeekView
 		CurrentURL  string
+		User        string
 	}{
 		Title:       "Schedule",
 		CurrentPage: "schedule",
@@ -47,6 +48,7 @@ func (c *ScheduleController) Index(w http.ResponseWriter, r *http.Request) {
 		Success:     r.URL.Query().Get("success"),
 		Schedule:    weeklySchedule,
 		CurrentURL:  r.URL.Path,
+		User:        getUserNickname(r),
 	}
 
 	renderTemplate(w, "schedule", "templates/schedule.html", templateData)
@@ -75,6 +77,7 @@ func (c *ScheduleController) Week(w http.ResponseWriter, r *http.Request) {
 		Success     string
 		Schedule    *models.WeekView
 		CurrentURL  string
+		User        string
 	}{
 		Title:       "Schedule - Week of " + models.FormatDate(date),
 		CurrentPage: "schedule",
@@ -82,6 +85,7 @@ func (c *ScheduleController) Week(w http.ResponseWriter, r *http.Request) {
 		Success:     "",
 		Schedule:    weeklySchedule,
 		CurrentURL:  r.URL.Path,
+		User:        getUserNickname(r),
 	}
 
 	renderTemplate(w, "schedule_week", "templates/schedule.html", templateData)
@@ -149,6 +153,7 @@ func (c *ScheduleController) ShowTakeoverForm(w http.ResponseWriter, r *http.Req
 		Entries     []models.ScheduleEntry
 		Form        *models.TakeoverForm
 		Redirect    string
+		User        string
 	}{
 		Title:       "Take Over Shift",
 		CurrentPage: "schedule",
@@ -158,6 +163,7 @@ func (c *ScheduleController) ShowTakeoverForm(w http.ResponseWriter, r *http.Req
 		Entries:     entries,
 		Form:        form,
 		Redirect:    r.URL.Query().Get("redirect"),
+		User:        getUserNickname(r),
 	}
 
 	renderTemplate(w, "schedule_takeover", "templates/schedule_takeover.html", templateData)
@@ -213,6 +219,7 @@ func (c *ScheduleController) CreateTakeover(w http.ResponseWriter, r *http.Reque
 			Entries     []models.ScheduleEntry
 			Form        *models.TakeoverForm
 			Redirect    string
+			User        string
 		}{
 			Title:       "Take Over Shift",
 			CurrentPage: "schedule",
@@ -222,6 +229,7 @@ func (c *ScheduleController) CreateTakeover(w http.ResponseWriter, r *http.Reque
 			Entries:     entries,
 			Form:        form,
 			Redirect:    r.FormValue("redirect"),
+			User:        getUserNickname(r),
 		}
 
 		renderTemplateWithStatus(w, http.StatusBadRequest, "schedule_takeover_error", "templates/schedule_takeover.html", templateData)
@@ -300,6 +308,7 @@ func (c *ScheduleController) ShowEditForm(w http.ResponseWriter, r *http.Request
 		TeamMembers []models.TeamMember
 		Form        *models.ScheduleEntryForm
 		Redirect    string
+		User        string
 	}{
 		Title:       "Edit Schedule Entry",
 		CurrentPage: "schedule",
@@ -309,6 +318,7 @@ func (c *ScheduleController) ShowEditForm(w http.ResponseWriter, r *http.Request
 		TeamMembers: teamMembers,
 		Form:        form,
 		Redirect:    r.URL.Query().Get("redirect"),
+		User:        getUserNickname(r),
 	}
 
 	renderTemplate(w, "schedule_edit", "templates/schedule_edit.html", templateData)
@@ -365,6 +375,7 @@ func (c *ScheduleController) UpdateEntry(w http.ResponseWriter, r *http.Request)
 			TeamMembers []models.TeamMember
 			Form        *models.ScheduleEntryForm
 			Redirect    string
+			User        string
 		}{
 			Title:       "Edit Schedule Entry",
 			CurrentPage: "schedule",
@@ -374,6 +385,7 @@ func (c *ScheduleController) UpdateEntry(w http.ResponseWriter, r *http.Request)
 			TeamMembers: teamMembers,
 			Form:        form,
 			Redirect:    r.FormValue("redirect"),
+			User:        getUserNickname(r),
 		}
 
 		renderTemplateWithStatus(w, http.StatusBadRequest, "schedule_edit_error", "templates/schedule_edit.html", templateData)

@@ -37,6 +37,7 @@ func (c *WorkingHoursController) Index(w http.ResponseWriter, r *http.Request) {
 		Success      string
 		WorkingHours []models.WorkingHours
 		DayNames     map[int]string
+		User         string
 	}{
 		Title:        "Working Hours Configuration",
 		CurrentPage:  "hours",
@@ -44,6 +45,7 @@ func (c *WorkingHoursController) Index(w http.ResponseWriter, r *http.Request) {
 		Success:      "",
 		WorkingHours: workingHours,
 		DayNames:     dayNames,
+		User:         getUserNickname(r),
 	}
 
 	renderTemplate(w, "hours", "templates/hours.html", templateData)
@@ -93,6 +95,7 @@ func (c *WorkingHoursController) Update(w http.ResponseWriter, r *http.Request) 
 			Success      string
 			WorkingHours []models.WorkingHours
 			DayNames     map[int]string
+			User         string
 		}{
 			Title:        "Working Hours Configuration",
 			CurrentPage:  "hours",
@@ -100,6 +103,7 @@ func (c *WorkingHoursController) Update(w http.ResponseWriter, r *http.Request) 
 			Success:      "",
 			WorkingHours: workingHours,
 			DayNames:     dayNames,
+			User:         getUserNickname(r),
 		}
 
 		renderTemplateWithStatus(w, http.StatusBadRequest, "hours_update_error", "templates/hours.html", templateData)
