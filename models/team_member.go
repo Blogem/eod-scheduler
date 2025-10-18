@@ -11,6 +11,7 @@ type TeamMember struct {
 	SlackHandle string    `json:"slack_handle" db:"slack_handle"`
 	Active      bool      `json:"active" db:"active"`
 	DateAdded   time.Time `json:"date_added" db:"date_added"`
+	AuditFields           // Embedded audit fields
 }
 
 // TeamMemberForm represents form data for creating/updating team members

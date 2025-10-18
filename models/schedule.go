@@ -13,10 +13,13 @@ type ScheduleEntry struct {
 	EndTime              string    `json:"end_time" db:"end_time"`
 	IsManualOverride     bool      `json:"is_manual_override" db:"is_manual_override"`
 	OriginalTeamMemberID *int      `json:"original_team_member_id,omitempty" db:"original_team_member_id"`
+	TakeoverReason       string    `json:"takeover_reason,omitempty" db:"takeover_reason"`
 
 	// Joined fields (populated from joins with team_members table)
 	TeamMemberName        string `json:"team_member_name,omitempty" db:"team_member_name"`
 	TeamMemberSlackHandle string `json:"team_member_slack_handle,omitempty" db:"team_member_slack_handle"`
+
+	AuditFields // Embedded audit fields
 }
 
 // ScheduleState represents the current state of schedule generation
@@ -129,8 +132,9 @@ type GenerationResult struct {
 
 // TakeoverForm represents form data for taking over a shift
 type TakeoverForm struct {
-	ScheduleEntryID int `json:"schedule_entry_id"`
-	NewTeamMemberID int `json:"new_team_member_id"`
+	ScheduleEntryID int    `json:"schedule_entry_id"`
+	NewTeamMemberID int    `json:"new_team_member_id"`
+	Reason          string `json:"reason"`
 }
 
 // Validate validates the takeover form data

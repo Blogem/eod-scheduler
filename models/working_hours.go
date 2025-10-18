@@ -2,11 +2,12 @@ package models
 
 // WorkingHours represents working hours configuration for a day of the week
 type WorkingHours struct {
-	ID        int    `json:"id" db:"id"`
-	DayOfWeek int    `json:"day_of_week" db:"day_of_week"` // 0=Monday, 6=Sunday
-	StartTime string `json:"start_time" db:"start_time"`   // "09:00" format
-	EndTime   string `json:"end_time" db:"end_time"`       // "17:00" format
-	Active    bool   `json:"active" db:"active"`
+	ID          int    `json:"id" db:"id"`
+	DayOfWeek   int    `json:"day_of_week" db:"day_of_week"` // 0=Monday, 6=Sunday
+	StartTime   string `json:"start_time" db:"start_time"`   // "09:00" format
+	EndTime     string `json:"end_time" db:"end_time"`       // "17:00" format
+	Active      bool   `json:"active" db:"active"`
+	AuditFields        // Embedded audit fields
 }
 
 // WorkingHoursForm represents form data for updating working hours

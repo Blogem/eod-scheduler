@@ -4,6 +4,13 @@ import (
 	"time"
 )
 
+// AuditFields contains common audit tracking fields
+type AuditFields struct {
+	CreatedBy  string     `json:"created_by,omitempty"`
+	ModifiedBy string     `json:"modified_by,omitempty"`
+	ModifiedAt *time.Time `json:"modified_at,omitempty"`
+}
+
 // Common validation functions and utilities used across models
 
 // FlashMessage represents a flash message for user feedback
