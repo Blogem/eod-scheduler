@@ -144,13 +144,15 @@ func (suite *GenerateScheduleTestSuite) TestGenerateSchedule_ForceGeneration() {
 
 	// Mock getting existing entries and deleting non-overrides
 	today := time.Now()
+	tomorrow := today.AddDate(0, 0, 1)
 	futureEnd := today.AddDate(0, 3, 0)
 	existingEntries := []models.ScheduleEntry{
 		{ID: 1, Date: today.AddDate(0, 0, 1), IsManualOverride: false},
 		{ID: 2, Date: today.AddDate(0, 0, 2), IsManualOverride: true}, // Should not be deleted
 	}
 	suite.mockScheduleRepo.EXPECT().GetByDateRange(mock.MatchedBy(func(from time.Time) bool {
-		return from.Year() == today.Year() && from.Month() == today.Month() && from.Day() == today.Day()
+		// Cleanup always starts from tomorrow
+		return from.Year() == tomorrow.Year() && from.Month() == tomorrow.Month() && from.Day() == tomorrow.Day()
 	}), mock.MatchedBy(func(to time.Time) bool {
 		return to.Year() == futureEnd.Year() && to.Month() == futureEnd.Month()
 	})).Return(existingEntries, nil)

@@ -216,9 +216,11 @@ func (s *scheduleService) getGenerationData() ([]models.TeamMember, []models.Wor
 // cleanupExistingEntries removes non-override entries from the future period
 func (s *scheduleService) cleanupExistingEntries() error {
 	today := timeNow()
+	// Always start cleanup from tomorrow to never delete today's entry
+	startDate := today.AddDate(0, 0, 1)
 	futureEnd := today.AddDate(0, 3, 0) // 3 months ahead
 
-	existingEntries, err := s.scheduleRepo.GetByDateRange(today, futureEnd)
+	existingEntries, err := s.scheduleRepo.GetByDateRange(startDate, futureEnd)
 	if err != nil {
 		return fmt.Errorf("failed to get existing entries: %w", err)
 	}
@@ -265,10 +267,23 @@ type WorkingDate struct {
 // collectWorkingDates finds all working dates in the generation period that don't have overrides
 func (s *scheduleService) collectWorkingDates(activeDays []models.WorkingHours) ([]WorkingDate, error) {
 	today := timeNow()
+
+	// Check if today has any schedule entries
+	todayEntries, err := s.scheduleRepo.GetByDate(today)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check today's entries: %w", err)
+	}
+
+	// Start from tomorrow if today has entries, otherwise from today
+	startDate := today.AddDate(0, 0, 1)
+	if len(todayEntries) == 0 {
+		startDate = today
+	}
+
 	futureEnd := today.AddDate(0, 3, 0) // 3 months ahead
 	var workingDates []WorkingDate
 
-	for date := today; date.Before(futureEnd); date = date.AddDate(0, 0, 1) {
+	for date := startDate; date.Before(futureEnd); date = date.AddDate(0, 0, 1) {
 		weekday := models.GetWeekdayNumber(date)
 
 		// Find working hours for this day of week
